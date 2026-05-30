@@ -5,6 +5,8 @@ import {
   CalendarCheck2,
   CheckCircle2,
   Clock3,
+  Eye,
+  EyeOff,
   Loader2,
   LockKeyhole,
   LogIn,
@@ -29,6 +31,7 @@ type Props = {
 
 export function AuthPanel({ onSubmit, isLoading }: Props) {
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -149,12 +152,23 @@ export function AuthPanel({ onSubmit, isLoading }: Props) {
 
           <label className="mb-6 block">
             <span className="mb-2 block text-sm font-semibold text-slate-700">Password</span>
-            <input
-              {...register("password")}
-              type="password"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-emerald-600"
-              placeholder="Minimum 8 characters"
-            />
+            <div className="relative">
+              <input
+                {...register("password")}
+                type={showPassword ? "text" : "password"}
+                className="w-full rounded-lg border border-slate-300 px-4 py-3 pr-12 outline-none focus:border-emerald-600"
+                placeholder="Minimum 8 characters"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((currentValue) => !currentValue)}
+                className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                title={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {errors.password && (
               <span className="mt-1 block text-sm text-rose-600">{errors.password.message}</span>
             )}
