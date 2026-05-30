@@ -14,7 +14,7 @@ export default function HomePage() {
 
   const meQuery = useQuery({
     queryKey: ["me"],
-    queryFn: api.me,
+    queryFn: api.session,
     retry: false,
     enabled: !skipSessionCheck,
   });

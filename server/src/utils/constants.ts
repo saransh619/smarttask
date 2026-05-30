@@ -104,6 +104,7 @@ export const ServerSuccess = {
     LOGIN: "Logged in successfully",
     LOGOUT: "Logged out successfully",
     ME: "Authenticated user fetched successfully",
+    SESSION: "Session checked successfully",
   },
   ADMIN: {
     STATS: "Admin statistics fetched successfully",

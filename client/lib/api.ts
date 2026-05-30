@@ -54,6 +54,8 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  session: () => request<{ user: User | null }>("/auth/session", { cache: "no-store" }),
+
   me: () => request<{ user: User }>("/auth/me"),
 
   logout: () =>

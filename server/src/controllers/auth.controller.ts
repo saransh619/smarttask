@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { User } from "../models/User.js";
-import { ServerErrors, ServerSuccess } from "../utils/constants.js";
+import { CookieNames, ServerErrors, ServerSuccess } from "../utils/constants.js";
 import { clearAuthCookie, setAuthCookie } from "../utils/cookies.js";
-import { signAccessToken } from "../utils/jwt.js";
+import { signAccessToken, verifyAccessToken } from "../utils/jwt.js";
 import { serverResponse } from "../utils/serverResponse.js";
 
 function serializeUser(user: { _id: unknown; name: string; email: string; role: string }) {
@@ -71,6 +71,34 @@ export async function me(req: Request, res: Response) {
   serverResponse.success(res, ServerSuccess.AUTH.ME, {
     user: serializeUser(user),
   });
+}
+
+export async function session(req: Request, res: Response) {
+  res.set("Cache-Control", "no-store");
+  const token = req.cookies?.[CookieNames.TOKEN];
+
+  if (!token) {
+    serverResponse.success(res, ServerSuccess.AUTH.SESSION, { user: null });
+    return;
+  }
+
+  try {
+    const payload = verifyAccessToken(token);
+    const user = await User.findById(payload.userId);
+
+    if (!user) {
+      clearAuthCookie(res);
+      serverResponse.success(res, ServerSuccess.AUTH.SESSION, { user: null });
+      return;
+    }
+
+    serverResponse.success(res, ServerSuccess.AUTH.SESSION, {
+      user: serializeUser(user),
+    });
+  } catch {
+    clearAuthCookie(res);
+    serverResponse.success(res, ServerSuccess.AUTH.SESSION, { user: null });
+  }
 }
 
 export function logout(_req: Request, res: Response) {
