@@ -16,7 +16,7 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL ?? "http://localhost:3000",
+    origin: process.env.CLIENT_URL,
     credentials: true,
   }),
 );
@@ -24,6 +24,14 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(morgan("dev"));
 app.use("/api", apiRateLimiter);
+
+app.get("/", (_req, res) => {
+  serverResponse.success(res, "SmartTask API is running", {
+    service: ApiMeta.SERVICE_NAME,
+    status: "ok",
+    healthUrl: "/health",
+  });
+});
 
 app.get("/health", (_req, res) => {
   serverResponse.success(res, ServerSuccess.HEALTH, {

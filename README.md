@@ -211,7 +211,7 @@ Recommended production setup:
 - Deploy `client/` to Vercel.
 - Deploy `server/` to Render, Railway, Fly.io, or a VPS.
 - Use MongoDB Atlas for the database.
-- Set `CLIENT_URL` to the deployed frontend URL.
+- Set `CLIENT_URL` to the deployed frontend URL from Vercel.
 - Set `NEXT_PUBLIC_API_URL` to the deployed backend `/api` URL.
 - Use a long random `JWT_SECRET`.
 
