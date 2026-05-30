@@ -382,6 +382,7 @@ function AdminUsersView({
             <table className="w-full border-collapse text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
+                  <th className="w-24 px-5 py-3 font-bold">S.N.</th>
                   <th className="px-5 py-3 font-bold">Name</th>
                   <th className="px-5 py-3 font-bold">Email</th>
                   <th className="px-5 py-3 font-bold">Role</th>
@@ -389,8 +390,11 @@ function AdminUsersView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {usersData.users.map((adminUser) => (
+                {usersData.users.map((adminUser, index) => (
                   <tr key={adminUser._id} className="hover:bg-slate-50">
+                    <td className="px-5 py-4 font-semibold text-slate-500">
+                      {(usersData.meta.page - 1) * usersData.meta.limit + index + 1}
+                    </td>
                     <td className="px-5 py-4 font-bold text-slate-950">{adminUser.name}</td>
                     <td className="px-5 py-4 text-slate-600">{adminUser.email}</td>
                     <td className="px-5 py-4">
