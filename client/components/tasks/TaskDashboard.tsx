@@ -109,7 +109,7 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
                 Admin overview
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <AdminMetric label="Users" value={adminStatsQuery.data.users.total} />
+                <AdminMetric label="Users" value={adminStatsQuery.data.users.standardUsers} />
                 <AdminMetric label="All tasks" value={adminStatsQuery.data.tasks.totalTasks} />
                 <AdminMetric label="Done" value={adminStatsQuery.data.tasks.doneTasks} />
                 <AdminMetric label="High priority" value={adminStatsQuery.data.tasks.highPriorityTasks} />
@@ -122,15 +122,21 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
                 Users
               </div>
               <div className="space-y-2">
-                {adminUsersQuery.data.users.map((adminUser) => (
-                  <div key={adminUser._id} className="rounded-md bg-slate-50 p-3">
-                    <div className="text-sm font-bold text-slate-950">{adminUser.name}</div>
-                    <div className="truncate text-xs text-slate-500">{adminUser.email}</div>
-                    <div className="mt-1 text-xs font-bold uppercase text-emerald-700">
-                      {adminUser.role}
-                    </div>
+                {adminUsersQuery.data.users.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                    No standard users registered yet.
                   </div>
-                ))}
+                ) : (
+                  adminUsersQuery.data.users.map((adminUser) => (
+                    <div key={adminUser._id} className="rounded-md bg-slate-50 p-3">
+                      <div className="text-sm font-bold text-slate-950">{adminUser.name}</div>
+                      <div className="truncate text-xs text-slate-500">{adminUser.email}</div>
+                      <div className="mt-1 text-xs font-bold uppercase text-emerald-700">
+                        {adminUser.role}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
               {adminUsersQuery.data.meta.totalPages > 1 && (
                 <div className="mt-3 flex items-center justify-between gap-2">

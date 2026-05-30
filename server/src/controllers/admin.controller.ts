@@ -46,14 +46,15 @@ export async function getAdminStats(_req: Request, res: Response) {
 
 export async function listUsers(req: Request, res: Response) {
   const { page, limit, skip } = getPagination(req);
+  const userFilter = { role: UserRole.USER };
   const [users, total] = await Promise.all([
-    User.find()
+    User.find(userFilter)
       .select("name email role createdAt")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
-    User.countDocuments(),
+    User.countDocuments(userFilter),
   ]);
 
   serverResponse.success(res, ServerSuccess.ADMIN.USERS_LISTED, {
