@@ -214,3 +214,24 @@ Recommended production setup:
 - Set `CLIENT_URL` to the deployed frontend URL.
 - Set `NEXT_PUBLIC_API_URL` to the deployed backend `/api` URL.
 - Use a long random `JWT_SECRET`.
+
+Render backend settings:
+
+```bash
+Root Directory: server
+Build Command: pnpm install --frozen-lockfile && pnpm build
+Start Command: pnpm start
+```
+
+Render backend environment variables:
+
+```bash
+NODE_ENV=production
+CLIENT_URL=https://your-frontend-domain.vercel.app
+MONGODB_URI=your-mongodb-atlas-uri
+JWT_SECRET=your-long-random-secret
+JWT_EXPIRES_IN=7d
+SUPER_ADMIN_NAME=SmartTask Superadmin
+SUPER_ADMIN_EMAIL=admin@example.com
+SUPER_ADMIN_PASSWORD=your-strong-password
+```
