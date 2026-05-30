@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  AlertTriangle,
   Brain,
   LayoutDashboard,
   ListTodo,
@@ -10,7 +9,6 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
-  Trash2,
   Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -37,7 +35,6 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
   const adminDashboard = useAdminDashboard({
     enabled: isSuperAdmin,
     usersViewActive: activeView === "users",
-    notify,
   });
 
   return (
@@ -98,8 +95,6 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
           isLoading={adminDashboard.usersQuery.isLoading}
           onPreviousPage={adminDashboard.previousUsersPage}
           onNextPage={adminDashboard.nextUsersPage}
-          onDeleteUser={adminDashboard.deleteUser}
-          isDeletingUser={adminDashboard.deleteUserMutation.isPending}
         />
       ) : (
         <TasksView
@@ -335,25 +330,17 @@ function AdminUsersView({
   isLoading,
   onPreviousPage,
   onNextPage,
-  onDeleteUser,
-  isDeletingUser,
 }: {
   stats?: AdminStats;
   usersData?: { users: AdminUser[]; meta: PaginationMeta };
   isLoading: boolean;
   onPreviousPage: () => void;
   onNextPage: () => void;
-  onDeleteUser: (id: string) => void;
-  isDeletingUser: boolean;
 }) {
-  const [userPendingDelete, setUserPendingDelete] = useState<AdminUser | null>(null);
-
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-      <section className="grid gap-4 md:grid-cols-3">
-        <AdminMetric label="Users" value={stats?.users.standardUsers ?? 0} />
-        <AdminMetric label="All tasks" value={stats?.tasks.totalTasks ?? 0} />
-        <AdminMetric label="High priority" value={stats?.tasks.highPriorityTasks ?? 0} />
+      <section className="grid gap-4 md:max-w-sm">
+        <AdminMetric label="Total users" value={stats?.users.standardUsers ?? 0} />
       </section>
 
       <section className="mt-6 rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -399,7 +386,6 @@ function AdminUsersView({
                   <th className="px-5 py-3 font-bold">Email</th>
                   <th className="px-5 py-3 font-bold">Role</th>
                   <th className="px-5 py-3 font-bold">Joined</th>
-                  <th className="px-5 py-3 text-right font-bold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -414,17 +400,6 @@ function AdminUsersView({
                     </td>
                     <td className="px-5 py-4 text-slate-600">
                       {new Date(adminUser.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setUserPendingDelete(adminUser)}
-                        className="inline-flex items-center gap-2 rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50"
-                        title="Delete user"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </button>
                     </td>
                   </tr>
                 ))}
@@ -447,46 +422,6 @@ function AdminUsersView({
             />
           </div>
         )}
-
-        <Modal
-          title="Delete user"
-          isOpen={Boolean(userPendingDelete)}
-          onClose={() => setUserPendingDelete(null)}
-        >
-          <div className="space-y-5">
-            <div className="flex gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-rose-800">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
-              <div>
-                <h3 className="font-bold">Remove this user from SmartTask?</h3>
-                <p className="mt-1 text-sm">
-                  This will delete {userPendingDelete?.name}'s account and all tasks owned by that user.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setUserPendingDelete(null)}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isDeletingUser || !userPendingDelete}
-                onClick={() => {
-                  if (!userPendingDelete) return;
-                  onDeleteUser(userPendingDelete._id);
-                  setUserPendingDelete(null);
-                }}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-bold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isDeletingUser ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                Delete user
-              </button>
-            </div>
-          </div>
-        </Modal>
       </section>
     </div>
   );

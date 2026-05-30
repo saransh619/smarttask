@@ -108,7 +108,6 @@ export const ServerSuccess = {
   ADMIN: {
     STATS: "Admin statistics fetched successfully",
     USERS_LISTED: "Users fetched successfully",
-    USER_DELETED: "User deleted successfully",
   },
   TASK: {
     CREATED: "Task created successfully",
