@@ -142,7 +142,7 @@ export function TaskForm({
         <input {...register("tags")} placeholder="frontend, urgent, college" className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600" />
       </label>
 
-      <button disabled={isSaving} className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-3 font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70">
+      <button disabled={isSaving} className="btn-primary mt-5 w-full px-4 py-3 disabled:cursor-not-allowed">
         {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
         {selectedTask ? "Save changes" : "Create task"}
       </button>

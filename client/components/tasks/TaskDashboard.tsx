@@ -53,7 +53,7 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
               {activeView === "tasks" && (
                 <button
                   onClick={taskWorkspace.openCreateTask}
-                  className="flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                  className="btn-primary px-4 py-2 text-sm"
                 >
                   <Plus className="h-4 w-4" />
                   New task
@@ -174,7 +174,7 @@ function TasksView({
         <button
           type="button"
           onClick={onCreateTask}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-3 font-semibold text-white hover:bg-slate-800"
+          className="btn-primary w-full px-4 py-3"
         >
           <Plus className="h-5 w-5" />
           Create new task
