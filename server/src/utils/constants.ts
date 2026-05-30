@@ -71,6 +71,7 @@ export const ServerErrors = {
     NOT_FOUND: "User not found",
     EXISTS: "An account with this email already exists",
     LISTED: "Users fetched successfully",
+    INVALID_ID: "Invalid user id",
   },
   TASK: {
     NOT_FOUND: "Task not found",
@@ -107,6 +108,7 @@ export const ServerSuccess = {
   ADMIN: {
     STATS: "Admin statistics fetched successfully",
     USERS_LISTED: "Users fetched successfully",
+    USER_DELETED: "User deleted successfully",
   },
   TASK: {
     CREATED: "Task created successfully",

@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { Task } from "../models/Task.js";
 import { User } from "../models/User.js";
-import { ServerSuccess, TaskPriority, TaskStatus, UserRole } from "../utils/constants.js";
+import { ServerErrors, ServerSuccess, TaskPriority, TaskStatus, UserRole } from "../utils/constants.js";
 import { createPaginationMeta, getPagination } from "../utils/pagination.js";
 import { serverResponse } from "../utils/serverResponse.js";
 
@@ -60,5 +60,23 @@ export async function listUsers(req: Request, res: Response) {
   serverResponse.success(res, ServerSuccess.ADMIN.USERS_LISTED, {
     users,
     meta: createPaginationMeta(total, page, limit),
+  });
+}
+
+export async function deleteUser(req: Request, res: Response) {
+  const user = await User.findOneAndDelete({
+    _id: req.params.id,
+    role: UserRole.USER,
+  });
+
+  if (!user) {
+    serverResponse.notFound(res, ServerErrors.USER.NOT_FOUND);
+    return;
+  }
+
+  await Task.deleteMany({ owner: user._id });
+
+  serverResponse.success(res, ServerSuccess.ADMIN.USER_DELETED, {
+    id: user._id.toString(),
   });
 }

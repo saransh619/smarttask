@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   Brain,
   LayoutDashboard,
   ListTodo,
@@ -9,6 +10,7 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
+  Trash2,
   Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -35,6 +37,7 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
   const adminDashboard = useAdminDashboard({
     enabled: isSuperAdmin,
     usersViewActive: activeView === "users",
+    notify,
   });
 
   return (
@@ -95,6 +98,8 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
           isLoading={adminDashboard.usersQuery.isLoading}
           onPreviousPage={adminDashboard.previousUsersPage}
           onNextPage={adminDashboard.nextUsersPage}
+          onDeleteUser={adminDashboard.deleteUser}
+          isDeletingUser={adminDashboard.deleteUserMutation.isPending}
         />
       ) : (
         <TasksView
@@ -188,50 +193,90 @@ function TasksView({
             Search and filters
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <label className="relative md:col-span-2">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+            <label className="space-y-1 md:col-span-2">
+              <span className="text-xs font-bold uppercase text-slate-500">Search</span>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <input
+                  value={filters.search}
+                  onChange={(event) => onUpdateFilters({ search: event.target.value })}
+                  placeholder="Title, description, or tag"
+                  className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 outline-none focus:border-emerald-600"
+                />
+              </div>
+            </label>
+            <Select
+              label="Status"
+              value={filters.status}
+              onChange={(value) => onUpdateFilters({ status: value as TaskFilters["status"] })}
+              options={[
+                { label: "All statuses", value: "All" },
+                { label: "Todo", value: "Todo" },
+                { label: "In progress", value: "In Progress" },
+                { label: "Done", value: "Done" },
+              ]}
+            />
+            <Select
+              label="Priority"
+              value={filters.priority}
+              onChange={(value) => onUpdateFilters({ priority: value as TaskFilters["priority"] })}
+              options={[
+                { label: "All priorities", value: "All" },
+                { label: "High", value: "High" },
+                { label: "Medium", value: "Medium" },
+                { label: "Low", value: "Low" },
+              ]}
+            />
+            <label className="space-y-1">
+              <span className="text-xs font-bold uppercase text-slate-500">Tag</span>
               <input
-                value={filters.search}
-                onChange={(event) => onUpdateFilters({ search: event.target.value })}
-                placeholder="Search title, description, tags"
-                className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 outline-none focus:border-emerald-600"
+                value={filters.tag}
+                onChange={(event) => onUpdateFilters({ tag: event.target.value })}
+                placeholder="Filter by tag"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
               />
             </label>
             <Select
-              value={filters.status}
-              onChange={(value) => onUpdateFilters({ status: value as TaskFilters["status"] })}
-              options={["All", "Todo", "In Progress", "Done"]}
-            />
-            <Select
-              value={filters.priority}
-              onChange={(value) => onUpdateFilters({ priority: value as TaskFilters["priority"] })}
-              options={["All", "High", "Medium", "Low"]}
-            />
-            <input
-              value={filters.tag}
-              onChange={(event) => onUpdateFilters({ tag: event.target.value })}
-              placeholder="Filter by tag"
-              className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
-            />
-            <Select
+              label="Sort by"
               value={filters.sortBy}
               onChange={(value) => onUpdateFilters({ sortBy: value as TaskFilters["sortBy"] })}
-              options={["smart", "dueDate", "priority", "status", "title", "createdAt"]}
+              options={[
+                { label: "Smart priority", value: "smart" },
+                { label: "Due date", value: "dueDate" },
+                { label: "Priority", value: "priority" },
+                { label: "Status", value: "status" },
+                { label: "Title", value: "title" },
+                { label: "Created date", value: "createdAt" },
+              ]}
             />
             <Select
+              label="Order"
               value={filters.sortOrder}
               onChange={(value) => onUpdateFilters({ sortOrder: value as TaskFilters["sortOrder"] })}
-              options={["asc", "desc"]}
+              options={[
+                { label: "Ascending", value: "asc" },
+                { label: "Descending", value: "desc" },
+              ]}
             />
             <Select
+              label="Method"
               value={filters.algorithm}
               onChange={(value) => onUpdateFilters({ algorithm: value as TaskFilters["algorithm"] })}
-              options={["merge", "quick"]}
+              options={[
+                { label: "Merge sort", value: "merge" },
+                { label: "Quick sort", value: "quick" },
+              ]}
             />
             <Select
+              label="Page size"
               value={String(filters.limit)}
               onChange={(value) => onUpdateFilters({ limit: Number(value) })}
-              options={["5", "10", "20", "50"]}
+              options={[
+                { label: "5 per page", value: "5" },
+                { label: "10 per page", value: "10" },
+                { label: "20 per page", value: "20" },
+                { label: "50 per page", value: "50" },
+              ]}
             />
           </div>
         </div>
@@ -290,13 +335,18 @@ function AdminUsersView({
   isLoading,
   onPreviousPage,
   onNextPage,
+  onDeleteUser,
+  isDeletingUser,
 }: {
   stats?: AdminStats;
   usersData?: { users: AdminUser[]; meta: PaginationMeta };
   isLoading: boolean;
   onPreviousPage: () => void;
   onNextPage: () => void;
+  onDeleteUser: (id: string) => void;
+  isDeletingUser: boolean;
 }) {
+  const [userPendingDelete, setUserPendingDelete] = useState<AdminUser | null>(null);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
@@ -349,6 +399,7 @@ function AdminUsersView({
                   <th className="px-5 py-3 font-bold">Email</th>
                   <th className="px-5 py-3 font-bold">Role</th>
                   <th className="px-5 py-3 font-bold">Joined</th>
+                  <th className="px-5 py-3 text-right font-bold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -363,6 +414,17 @@ function AdminUsersView({
                     </td>
                     <td className="px-5 py-4 text-slate-600">
                       {new Date(adminUser.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setUserPendingDelete(adminUser)}
+                        className="inline-flex items-center gap-2 rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50"
+                        title="Delete user"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -385,6 +447,46 @@ function AdminUsersView({
             />
           </div>
         )}
+
+        <Modal
+          title="Delete user"
+          isOpen={Boolean(userPendingDelete)}
+          onClose={() => setUserPendingDelete(null)}
+        >
+          <div className="space-y-5">
+            <div className="flex gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-rose-800">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+              <div>
+                <h3 className="font-bold">Remove this user from SmartTask?</h3>
+                <p className="mt-1 text-sm">
+                  This will delete {userPendingDelete?.name}'s account and all tasks owned by that user.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setUserPendingDelete(null)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingUser || !userPendingDelete}
+                onClick={() => {
+                  if (!userPendingDelete) return;
+                  onDeleteUser(userPendingDelete._id);
+                  setUserPendingDelete(null);
+                }}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-bold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDeletingUser ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Delete user
+              </button>
+            </div>
+          </div>
+        </Modal>
       </section>
     </div>
   );
@@ -479,23 +581,30 @@ function AdminMetric({ label, value }: { label: string; value: number }) {
 }
 
 function Select({
+  label,
   value,
   onChange,
   options,
 }: {
+  label: string;
   value: string;
   onChange: (value: string) => void;
-  options: string[];
+  options: Array<{ label: string; value: string }>;
 }) {
   return (
-    <select
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
-    >
-      {options.map((option) => (
-        <option key={option}>{option}</option>
-      ))}
-    </select>
+    <label className="space-y-1">
+      <span className="text-xs font-bold uppercase text-slate-500">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

@@ -103,4 +103,9 @@ export const api = {
     request<{ users: AdminUser[]; meta: PaginationMeta }>(
       `/admin/users?page=${page}&limit=${limit}`,
     ),
+
+  deleteUser: (id: string) =>
+    request<{ id: string }>(`/admin/users/${id}`, {
+      method: "DELETE",
+    }),
 };
