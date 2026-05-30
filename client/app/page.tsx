@@ -10,11 +10,13 @@ import { api } from "@/lib/api";
 export default function HomePage() {
   const queryClient = useQueryClient();
   const [toast, setToast] = useState<ToastState>(null);
+  const [skipSessionCheck, setSkipSessionCheck] = useState(false);
 
   const meQuery = useQuery({
     queryKey: ["me"],
     queryFn: api.me,
     retry: false,
+    enabled: !skipSessionCheck,
   });
 
   const authMutation = useMutation({
@@ -30,6 +32,7 @@ export default function HomePage() {
       return api.login({ email: values.email, password: values.password });
     },
     onSuccess: (data) => {
+      setSkipSessionCheck(false);
       queryClient.setQueryData(["me"], data);
       notify("success", "Welcome to SmartTask");
     },
@@ -39,7 +42,11 @@ export default function HomePage() {
   const logoutMutation = useMutation({
     mutationFn: api.logout,
     onSuccess: () => {
-      queryClient.clear();
+      setSkipSessionCheck(true);
+      queryClient.setQueryData(["me"], null);
+      queryClient.removeQueries({ queryKey: ["tasks"] });
+      queryClient.removeQueries({ queryKey: ["admin-stats"] });
+      queryClient.removeQueries({ queryKey: ["admin-users"] });
       notify("success", "Logged out");
     },
     onError: (error: Error) => notify("error", error.message),
