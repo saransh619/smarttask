@@ -24,9 +24,16 @@ type Props = {
   isSaving: boolean;
   onSubmit: (task: TaskInput) => void;
   onCancelEdit: () => void;
+  variant?: "card" | "plain";
 };
 
-export function TaskForm({ selectedTask, isSaving, onSubmit, onCancelEdit }: Props) {
+export function TaskForm({
+  selectedTask,
+  isSaving,
+  onSubmit,
+  onCancelEdit,
+  variant = "card",
+}: Props) {
   const {
     register,
     handleSubmit,
@@ -80,7 +87,10 @@ export function TaskForm({ selectedTask, isSaving, onSubmit, onCancelEdit }: Pro
   }
 
   return (
-    <form onSubmit={handleSubmit(submit)} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <form
+      onSubmit={handleSubmit(submit)}
+      className={variant === "card" ? "rounded-lg border border-slate-200 bg-white p-5 shadow-sm" : ""}
+    >
       <div className="mb-5 flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-lg font-bold text-slate-950">
           <CalendarPlus className="h-5 w-5 text-emerald-600" />

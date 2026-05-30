@@ -1,20 +1,22 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Brain,
   LayoutDashboard,
   ListTodo,
   Loader2,
   LogOut,
+  Plus,
   Search,
   SlidersHorizontal,
   Users,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { api } from "@/lib/api";
-import type { Task, TaskFilters, TaskInput, User } from "@/types/task";
+import { useAdminDashboard } from "@/hooks/useAdminDashboard";
+import { useTaskWorkspace } from "@/hooks/useTaskWorkspace";
+import type { AdminStats, AdminUser, PaginationMeta, Task, TaskFilters, User } from "@/types/task";
+import { Modal } from "@/components/ui/Modal";
 import { TaskCard } from "./TaskCard";
 import { TaskForm } from "./TaskForm";
 
@@ -26,82 +28,14 @@ type Props = {
 
 type DashboardView = "tasks" | "users";
 
-const initialFilters: TaskFilters = {
-  search: "",
-  status: "All",
-  priority: "All",
-  tag: "",
-  sortBy: "smart",
-  sortOrder: "asc",
-  algorithm: "merge",
-  page: 1,
-  limit: 10,
-};
-
 export function TaskDashboard({ user, onLogout, notify }: Props) {
-  const queryClient = useQueryClient();
   const [activeView, setActiveView] = useState<DashboardView>("tasks");
-  const [filters, setFilters] = useState<TaskFilters>(initialFilters);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [adminUsersPage, setAdminUsersPage] = useState(1);
-  const debouncedFilters = useDebouncedValue(filters, 250);
   const isSuperAdmin = user.role === "superadmin";
-
-  const tasksQuery = useQuery({
-    queryKey: ["tasks", debouncedFilters],
-    queryFn: () => api.listTasks(debouncedFilters),
-  });
-
-  const adminStatsQuery = useQuery({
-    queryKey: ["admin-stats"],
-    queryFn: api.getAdminStats,
+  const taskWorkspace = useTaskWorkspace({ isSuperAdmin, notify });
+  const adminDashboard = useAdminDashboard({
     enabled: isSuperAdmin,
+    usersViewActive: activeView === "users",
   });
-
-  const adminUsersQuery = useQuery({
-    queryKey: ["admin-users", adminUsersPage],
-    queryFn: () => api.listUsers(adminUsersPage, 8),
-    enabled: isSuperAdmin && activeView === "users",
-  });
-
-  const saveMutation = useMutation({
-    mutationFn: (payload: TaskInput) =>
-      selectedTask ? api.updateTask(selectedTask._id, payload) : api.createTask(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      if (isSuperAdmin) {
-        queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
-      }
-      notify("success", selectedTask ? "Task updated" : "Task created");
-      setSelectedTask(null);
-    },
-    onError: (error: Error) => notify("error", error.message),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: api.deleteTask,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      if (isSuperAdmin) {
-        queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
-      }
-      notify("success", "Task deleted");
-    },
-    onError: (error: Error) => notify("error", error.message),
-  });
-
-  const tasks = tasksQuery.data?.tasks ?? [];
-  const pagination = tasksQuery.data?.meta;
-  const completed = tasks.filter((task) => task.status === "Done").length;
-  const urgent = tasks.filter((task) => task.priority === "High").length;
-
-  function updateFilters(nextFilters: Partial<TaskFilters>) {
-    setFilters((currentFilters) => ({
-      ...currentFilters,
-      ...nextFilters,
-      page: nextFilters.page ?? 1,
-    }));
-  }
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -115,13 +49,24 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
               </p>
               <h1 className="mt-1 text-2xl font-bold text-slate-950">Welcome, {user.name}</h1>
             </div>
-            <button
-              onClick={onLogout}
-              className="flex w-fit items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {activeView === "tasks" && (
+                <button
+                  onClick={taskWorkspace.openCreateTask}
+                  className="flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                >
+                  <Plus className="h-4 w-4" />
+                  New task
+                </button>
+              )}
+              <button
+                onClick={onLogout}
+                className="flex w-fit items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </button>
+            </div>
           </div>
 
           {isSuperAdmin && (
@@ -145,30 +90,42 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
 
       {activeView === "users" && isSuperAdmin ? (
         <AdminUsersView
-          adminStatsQuery={adminStatsQuery}
-          adminUsersQuery={adminUsersQuery}
-          onPreviousPage={() => setAdminUsersPage((page) => Math.max(page - 1, 1))}
-          onNextPage={() => setAdminUsersPage((page) => page + 1)}
+          stats={adminDashboard.statsQuery.data}
+          usersData={adminDashboard.usersQuery.data}
+          isLoading={adminDashboard.usersQuery.isLoading}
+          onPreviousPage={adminDashboard.previousUsersPage}
+          onNextPage={adminDashboard.nextUsersPage}
         />
       ) : (
         <TasksView
-          tasks={tasks}
-          completed={completed}
-          urgent={urgent}
-          pagination={pagination}
-          filters={filters}
-          selectedTask={selectedTask}
-          isSaving={saveMutation.isPending}
-          isLoading={tasksQuery.isLoading}
-          isError={tasksQuery.isError}
-          error={tasksQuery.error as Error | null}
-          onUpdateFilters={updateFilters}
-          onSubmitTask={(task) => saveMutation.mutate(task)}
-          onCancelEdit={() => setSelectedTask(null)}
-          onEditTask={setSelectedTask}
-          onDeleteTask={(id) => deleteMutation.mutate(id)}
+          tasks={taskWorkspace.tasks}
+          completed={taskWorkspace.completed}
+          urgent={taskWorkspace.urgent}
+          pagination={taskWorkspace.pagination}
+          filters={taskWorkspace.filters}
+          isLoading={taskWorkspace.tasksQuery.isLoading}
+          isError={taskWorkspace.tasksQuery.isError}
+          error={taskWorkspace.tasksQuery.error as Error | null}
+          onUpdateFilters={taskWorkspace.updateFilters}
+          onCreateTask={taskWorkspace.openCreateTask}
+          onEditTask={taskWorkspace.openEditTask}
+          onDeleteTask={taskWorkspace.deleteTask}
         />
       )}
+
+      <Modal
+        title={taskWorkspace.selectedTask ? "Edit task" : "New task"}
+        isOpen={taskWorkspace.isTaskFormOpen}
+        onClose={taskWorkspace.closeTaskForm}
+      >
+        <TaskForm
+          selectedTask={taskWorkspace.selectedTask}
+          isSaving={taskWorkspace.saveMutation.isPending}
+          onSubmit={taskWorkspace.saveTask}
+          onCancelEdit={taskWorkspace.closeTaskForm}
+          variant="plain"
+        />
+      </Modal>
     </main>
   );
 }
@@ -179,14 +136,11 @@ function TasksView({
   urgent,
   pagination,
   filters,
-  selectedTask,
-  isSaving,
   isLoading,
   isError,
   error,
   onUpdateFilters,
-  onSubmitTask,
-  onCancelEdit,
+  onCreateTask,
   onEditTask,
   onDeleteTask,
 }: {
@@ -201,14 +155,11 @@ function TasksView({
     hasPreviousPage: boolean;
   };
   filters: TaskFilters;
-  selectedTask: Task | null;
-  isSaving: boolean;
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
   onUpdateFilters: (filters: Partial<TaskFilters>) => void;
-  onSubmitTask: (task: TaskInput) => void;
-  onCancelEdit: () => void;
+  onCreateTask: () => void;
   onEditTask: (task: Task) => void;
   onDeleteTask: (id: string) => void;
 }) {
@@ -220,12 +171,14 @@ function TasksView({
           <Stat label="Done" value={completed} />
           <Stat label="High" value={urgent} />
         </div>
-        <TaskForm
-          selectedTask={selectedTask}
-          isSaving={isSaving}
-          onSubmit={onSubmitTask}
-          onCancelEdit={onCancelEdit}
-        />
+        <button
+          type="button"
+          onClick={onCreateTask}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-3 font-semibold text-white hover:bg-slate-800"
+        >
+          <Plus className="h-5 w-5" />
+          Create new task
+        </button>
       </aside>
 
       <section className="space-y-4">
@@ -332,34 +285,18 @@ function TasksView({
 }
 
 function AdminUsersView({
-  adminStatsQuery,
-  adminUsersQuery,
+  stats,
+  usersData,
+  isLoading,
   onPreviousPage,
   onNextPage,
 }: {
-  adminStatsQuery: ReturnType<typeof useQuery>;
-  adminUsersQuery: ReturnType<typeof useQuery>;
+  stats?: AdminStats;
+  usersData?: { users: AdminUser[]; meta: PaginationMeta };
+  isLoading: boolean;
   onPreviousPage: () => void;
   onNextPage: () => void;
 }) {
-  const stats = adminStatsQuery.data as
-    | {
-        users: { standardUsers: number; superAdmins: number };
-        tasks: { totalTasks: number; doneTasks: number; highPriorityTasks: number };
-      }
-    | undefined;
-  const usersData = adminUsersQuery.data as
-    | {
-        users: Array<{ _id: string; name: string; email: string; role: string; createdAt: string }>;
-        meta: {
-          total: number;
-          page: number;
-          totalPages: number;
-          hasPreviousPage: boolean;
-          hasNextPage: boolean;
-        };
-      }
-    | undefined;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
@@ -388,7 +325,7 @@ function AdminUsersView({
           )}
         </div>
 
-        {adminUsersQuery.isLoading && (
+        {isLoading && (
           <div className="flex items-center justify-center py-16 text-slate-500">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             Loading users
@@ -461,7 +398,7 @@ function ViewButton({
   onClick,
 }: {
   active: boolean;
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   onClick: () => void;
 }) {
