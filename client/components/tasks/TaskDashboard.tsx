@@ -300,9 +300,8 @@ function AdminUsersView({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-3">
         <AdminMetric label="Users" value={stats?.users.standardUsers ?? 0} />
-        <AdminMetric label="Superadmins" value={stats?.users.superAdmins ?? 0} />
         <AdminMetric label="All tasks" value={stats?.tasks.totalTasks ?? 0} />
         <AdminMetric label="High priority" value={stats?.tasks.highPriorityTasks ?? 0} />
       </section>
@@ -315,7 +314,7 @@ function AdminUsersView({
               Users
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Standard registered users are listed here. Superadmin accounts are excluded.
+              Manage registered users in SmartTask.
             </p>
           </div>
           {usersData?.meta && (
