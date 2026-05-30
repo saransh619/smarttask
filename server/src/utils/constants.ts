@@ -6,6 +6,7 @@ export const HttpStatus = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   CONFLICT: 409,
+  TOO_MANY_REQUESTS: 429,
   INTERNAL_SERVER_ERROR: 500,
 } as const;
 
@@ -61,6 +62,7 @@ export const ServerErrors = {
   RESOURCE_NOT_FOUND: "Resource not found",
   UNAUTHORIZED: "Unauthorized",
   FORBIDDEN: "Forbidden",
+  TOO_MANY_REQUESTS: "Too many requests. Please try again later.",
   AUTH: {
     REQUIRED: "Authentication required",
     INVALID_OR_EXPIRED_SESSION: "Invalid or expired session",

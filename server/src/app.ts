@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.routes.js";
 import taskRoutes from "./routes/task.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import { errorHandler, notFound } from "./middleware/error.middleware.js";
+import { apiRateLimiter } from "./middleware/rateLimit.middleware.js";
 import { ApiMeta, ServerSuccess } from "./utils/constants.js";
 import { serverResponse } from "./utils/serverResponse.js";
 
@@ -22,6 +23,7 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan("dev"));
+app.use("/api", apiRateLimiter);
 
 app.get("/health", (_req, res) => {
   serverResponse.success(res, ServerSuccess.HEALTH, {

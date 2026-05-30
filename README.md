@@ -16,6 +16,7 @@ SmartTask is a full-stack, production-style task management system built with Ne
 - JWT authentication with httpOnly cookies
 - Register, login, logout, and session restore
 - User and superadmin roles
+- API rate limiting for general traffic and stricter auth protection
 - Startup superadmin seeding from environment variables
 - Full task CRUD over REST APIs
 - Task fields: title, description, due date, priority, status, and tags
@@ -120,8 +121,11 @@ All API responses use one consistent envelope:
 | --- | --- | --- |
 | POST | `/auth/register` | Create account and set auth cookie |
 | POST | `/auth/login` | Login and set auth cookie |
+| GET | `/auth/session` | Public session check for restoring logged-in users |
 | GET | `/auth/me` | Get current authenticated user |
 | POST | `/auth/logout` | Clear auth cookie |
+
+Auth endpoints use a stricter rate limiter to slow down repeated failed login/register attempts.
 
 ### Tasks
 
@@ -162,6 +166,15 @@ Supported admin user query params:
 page=1
 limit=10
 ```
+
+## Security Notes
+
+- httpOnly JWT cookies are used so tokens are not stored in browser JavaScript state.
+- Helmet adds common secure HTTP headers.
+- CORS is restricted with credentials enabled for the configured frontend URL.
+- `/api` routes use a general rate limiter.
+- `/auth/login` and `/auth/register` use a stricter rate limiter for brute-force protection.
+- `/auth/session` is marked `no-store` to avoid cached session state.
 
 ## Scripts
 

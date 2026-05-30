@@ -53,6 +53,9 @@ export const serverResponse = {
   conflict: (res: Response, message: string) =>
     send(res, HttpStatus.CONFLICT, false, message),
 
+  tooManyRequests: (res: Response, message: string) =>
+    send(res, HttpStatus.TOO_MANY_REQUESTS, false, message),
+
   error: (res: Response, message: string = ServerErrors.INTERNAL_SERVER_ERROR) =>
     send(res, HttpStatus.INTERNAL_SERVER_ERROR, false, message),
 };
