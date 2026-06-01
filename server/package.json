@@ -24,7 +24,8 @@
     "helmet": "latest",
     "jsonwebtoken": "latest",
     "mongoose": "latest",
-    "morgan": "latest"
+    "morgan": "latest",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/cookie-parser": "latest",
@@ -33,6 +34,7 @@
     "@types/jsonwebtoken": "latest",
     "@types/morgan": "latest",
     "@types/node": "latest",
+    "@types/swagger-ui-express": "^4.1.8",
     "tsx": "latest",
     "typescript": "latest"
   }
