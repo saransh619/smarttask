@@ -2,6 +2,7 @@
 
 import {
   Brain,
+  AlertTriangle,
   LayoutDashboard,
   ListTodo,
   Loader2,
@@ -38,6 +39,7 @@ type DashboardView = "tasks" | "users";
 
 export function TaskDashboard({ user, onLogout, notify }: Props) {
   const [activeView, setActiveView] = useState<DashboardView>("tasks");
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const isSuperAdmin = user.role === "superadmin";
   const taskWorkspace = useTaskWorkspace({ isSuperAdmin, notify });
   const adminDashboard = useAdminDashboard({
@@ -47,7 +49,7 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -120,7 +122,7 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
           onCreateTask={taskWorkspace.openCreateTask}
           onEditTask={taskWorkspace.openEditTask}
           onUpdateTaskStatus={taskWorkspace.updateTaskStatus}
-          onDeleteTask={taskWorkspace.deleteTask}
+          onDeleteTask={setTaskToDelete}
         />
       )}
 
@@ -136,6 +138,45 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
           onCancelEdit={taskWorkspace.closeTaskForm}
           variant="plain"
         />
+      </Modal>
+
+      <Modal
+        title="Delete task"
+        isOpen={Boolean(taskToDelete)}
+        onClose={() => setTaskToDelete(null)}
+      >
+        {taskToDelete && (
+          <div className="space-y-5">
+            <div className="flex gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-rose-700">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+              <div>
+                <h3 className="font-bold">Delete this task?</h3>
+                <p className="mt-1 text-sm">
+                  This will permanently delete "{taskToDelete.title}" from SmartTask.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setTaskToDelete(null)}
+                className="rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  taskWorkspace.deleteTask(taskToDelete._id);
+                  setTaskToDelete(null);
+                }}
+                className="rounded-lg bg-rose-600 px-4 py-2 font-semibold text-white hover:bg-rose-700"
+              >
+                Delete task
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </main>
   );
@@ -178,11 +219,11 @@ function TasksView({
   onCreateTask: () => void;
   onEditTask: (task: Task) => void;
   onUpdateTaskStatus: (id: string, status: TaskStatus) => void;
-  onDeleteTask: (id: string) => void;
+  onDeleteTask: (task: Task) => void;
 }) {
   return (
     <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[390px_1fr]">
-      <aside className="space-y-4">
+      <aside className="space-y-4 lg:sticky lg:top-36 lg:self-start">
         <div className="grid grid-cols-2 gap-3">
           <Stat label="Total" value={pagination?.total ?? tasks.length} />
           <Stat label="Todo" value={todo} />
@@ -322,7 +363,7 @@ function TasksView({
               task={task}
               onEdit={onEditTask}
               onUpdateStatus={onUpdateTaskStatus}
-              onDelete={onDeleteTask}
+              onDelete={() => onDeleteTask(task)}
             />
           ))}
         </div>
