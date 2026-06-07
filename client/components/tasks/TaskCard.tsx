@@ -1,12 +1,13 @@
 "use client";
 
-import { CalendarDays, CheckCircle2, Pencil, Trash2 } from "lucide-react";
-import type { Task } from "@/types/task";
+import { CalendarDays, CheckCircle2, CirclePlay, Pencil, RotateCcw, Trash2 } from "lucide-react";
+import type { Task, TaskStatus } from "@/types/task";
 import { formatDate } from "@/utils/date";
 
 type Props = {
   task: Task;
   onEdit: (task: Task) => void;
+  onUpdateStatus: (id: string, status: TaskStatus) => void;
   onDelete: (id: string) => void;
 };
 
@@ -22,7 +23,26 @@ const statusClass = {
   Done: "bg-emerald-100 text-emerald-700",
 };
 
-export function TaskCard({ task, onEdit, onDelete }: Props) {
+export function TaskCard({ task, onEdit, onUpdateStatus, onDelete }: Props) {
+  const statusAction =
+    task.status === "Todo"
+      ? {
+          label: "Start",
+          status: "In Progress" as const,
+          icon: <CirclePlay className="h-4 w-4" />,
+        }
+      : task.status === "In Progress"
+        ? {
+            label: "Mark done",
+            status: "Done" as const,
+            icon: <CheckCircle2 className="h-4 w-4" />,
+          }
+        : {
+            label: "Reopen",
+            status: "Todo" as const,
+            icon: <RotateCcw className="h-4 w-4" />,
+          };
+
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -66,6 +86,17 @@ export function TaskCard({ task, onEdit, onDelete }: Props) {
           Completed
         </div>
       )}
+
+      <div className="mt-4 border-t border-slate-100 pt-4">
+        <button
+          type="button"
+          onClick={() => onUpdateStatus(task._id, statusAction.status)}
+          className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+        >
+          {statusAction.icon}
+          {statusAction.label}
+        </button>
+      </div>
     </article>
   );
 }

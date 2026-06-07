@@ -15,7 +15,15 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { useAdminDashboard } from "@/hooks/useAdminDashboard";
 import { useTaskWorkspace } from "@/hooks/useTaskWorkspace";
-import type { AdminStats, AdminUser, PaginationMeta, Task, TaskFilters, User } from "@/types/task";
+import type {
+  AdminStats,
+  AdminUser,
+  PaginationMeta,
+  Task,
+  TaskFilters,
+  TaskStatus,
+  User,
+} from "@/types/task";
 import { Modal } from "@/components/ui/Modal";
 import { TaskCard } from "./TaskCard";
 import { TaskForm } from "./TaskForm";
@@ -111,6 +119,7 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
           onUpdateFilters={taskWorkspace.updateFilters}
           onCreateTask={taskWorkspace.openCreateTask}
           onEditTask={taskWorkspace.openEditTask}
+          onUpdateTaskStatus={taskWorkspace.updateTaskStatus}
           onDeleteTask={taskWorkspace.deleteTask}
         />
       )}
@@ -146,6 +155,7 @@ function TasksView({
   onUpdateFilters,
   onCreateTask,
   onEditTask,
+  onUpdateTaskStatus,
   onDeleteTask,
 }: {
   tasks: Task[];
@@ -167,6 +177,7 @@ function TasksView({
   onUpdateFilters: (filters: Partial<TaskFilters>) => void;
   onCreateTask: () => void;
   onEditTask: (task: Task) => void;
+  onUpdateTaskStatus: (id: string, status: TaskStatus) => void;
   onDeleteTask: (id: string) => void;
 }) {
   return (
@@ -310,6 +321,7 @@ function TasksView({
               key={task._id}
               task={task}
               onEdit={onEditTask}
+              onUpdateStatus={onUpdateTaskStatus}
               onDelete={onDeleteTask}
             />
           ))}

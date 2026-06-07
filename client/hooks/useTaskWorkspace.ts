@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { api } from "@/lib/api";
-import type { Task, TaskFilters, TaskInput } from "@/types/task";
+import type { Task, TaskFilters, TaskInput, TaskStatus } from "@/types/task";
 
 const initialFilters: TaskFilters = {
   search: "",
@@ -61,6 +61,19 @@ export function useTaskWorkspace({ isSuperAdmin, notify }: Args) {
     onError: (error: Error) => notify("error", error.message),
   });
 
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: TaskStatus }) =>
+      api.updateTask(id, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      if (isSuperAdmin) {
+        queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+      }
+      notify("success", "Task status updated");
+    },
+    onError: (error: Error) => notify("error", error.message),
+  });
+
   const tasks = tasksQuery.data?.tasks ?? [];
   const pagination = tasksQuery.data?.meta;
   const todo = pagination?.stats?.todo ?? tasks.filter((task) => task.status === "Todo").length;
@@ -105,11 +118,13 @@ export function useTaskWorkspace({ isSuperAdmin, notify }: Args) {
     isTaskFormOpen,
     tasksQuery,
     saveMutation,
+    statusMutation,
     updateFilters,
     openCreateTask,
     openEditTask,
     closeTaskForm,
     saveTask: (task: TaskInput) => saveMutation.mutate(task),
+    updateTaskStatus: (id: string, status: TaskStatus) => statusMutation.mutate({ id, status }),
     deleteTask: (id: string) => deleteMutation.mutate(id),
   };
 }

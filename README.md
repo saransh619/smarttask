@@ -40,12 +40,11 @@ SmartTask is a full-stack, production-style task management system built with Ne
 smarttask/
 ├── client/   # Next.js 16 + React 19 + TypeScript + Tailwind CSS v4
 ├── server/   # Node.js + Express + TypeScript + MongoDB + DSA modules
+├── screenshots/   # README screenshots
 └── README.md
 ```
 
 ## Setup
-
-Install dependencies separately because the root is intentionally kept clean.
 
 Prerequisites:
 
@@ -53,15 +52,43 @@ Prerequisites:
 - pnpm 10 or newer
 - MongoDB running locally or a MongoDB Atlas connection string
 
+Clone the repository:
+
+```bash
+git clone git@github.com:saransh619/smarttask.git
+cd smarttask
+```
+
+Install dependencies separately because the root is intentionally kept clean:
+
 ```bash
 cd client
 pnpm install
-pnpm dev
+cd ..
 ```
 
 ```bash
 cd server
 pnpm install
+cd ..
+```
+
+Create environment files from the examples:
+
+```bash
+cp client/.env.example client/.env
+cp server/.env.example server/.env
+```
+
+Update `client/.env` and `server/.env` with your local values, then run both apps in separate terminals:
+
+```bash
+cd server
+pnpm dev
+```
+
+```bash
+cd client
 pnpm dev
 ```
 
