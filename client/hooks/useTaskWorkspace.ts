@@ -63,8 +63,12 @@ export function useTaskWorkspace({ isSuperAdmin, notify }: Args) {
 
   const tasks = tasksQuery.data?.tasks ?? [];
   const pagination = tasksQuery.data?.meta;
-  const completed = tasks.filter((task) => task.status === "Done").length;
-  const urgent = tasks.filter((task) => task.priority === "High").length;
+  const todo = pagination?.stats?.todo ?? tasks.filter((task) => task.status === "Todo").length;
+  const inProgress =
+    pagination?.stats?.inProgress ?? tasks.filter((task) => task.status === "In Progress").length;
+  const completed = pagination?.stats?.done ?? tasks.filter((task) => task.status === "Done").length;
+  const urgent =
+    pagination?.stats?.highPriority ?? tasks.filter((task) => task.priority === "High").length;
 
   function updateFilters(nextFilters: Partial<TaskFilters>) {
     setFilters((currentFilters) => ({
@@ -93,6 +97,8 @@ export function useTaskWorkspace({ isSuperAdmin, notify }: Args) {
     filters,
     tasks,
     pagination,
+    todo,
+    inProgress,
     completed,
     urgent,
     selectedTask,

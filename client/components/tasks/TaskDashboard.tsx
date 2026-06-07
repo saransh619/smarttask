@@ -99,6 +99,8 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
       ) : (
         <TasksView
           tasks={taskWorkspace.tasks}
+          todo={taskWorkspace.todo}
+          inProgress={taskWorkspace.inProgress}
           completed={taskWorkspace.completed}
           urgent={taskWorkspace.urgent}
           pagination={taskWorkspace.pagination}
@@ -132,6 +134,8 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
 
 function TasksView({
   tasks,
+  todo,
+  inProgress,
   completed,
   urgent,
   pagination,
@@ -145,6 +149,8 @@ function TasksView({
   onDeleteTask,
 }: {
   tasks: Task[];
+  todo: number;
+  inProgress: number;
   completed: number;
   urgent: number;
   pagination?: {
@@ -166,8 +172,10 @@ function TasksView({
   return (
     <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[390px_1fr]">
       <aside className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Stat label="Total" value={pagination?.total ?? tasks.length} />
+          <Stat label="Todo" value={todo} />
+          <Stat label="In progress" value={inProgress} />
           <Stat label="Done" value={completed} />
           <Stat label="High" value={urgent} />
         </div>

@@ -37,12 +37,19 @@ export async function listTasks(req: Request, res: Response) {
     req.query.sortOrder === "desc" ? "desc" : "asc",
     req.query.algorithm === "quick" ? "quick" : "merge",
   );
+  const stats = {
+    todo: sorted.filter((task) => task.status === "Todo").length,
+    inProgress: sorted.filter((task) => task.status === "In Progress").length,
+    done: sorted.filter((task) => task.status === "Done").length,
+    highPriority: sorted.filter((task) => task.priority === "High").length,
+  };
   const paginatedTasks = sorted.slice(skip, skip + limit);
 
   serverResponse.success(res, ServerSuccess.TASK.LISTED, {
     tasks: paginatedTasks,
     meta: {
       ...createPaginationMeta(sorted.length, page, limit),
+      stats,
       algorithms: ApiMeta.DSA_ALGORITHMS,
     },
   });

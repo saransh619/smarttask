@@ -71,4 +71,10 @@ export type PaginationMeta = {
   totalPages: number;
   hasNextPage: boolean;
   hasPreviousPage: boolean;
+  stats?: {
+    todo: number;
+    inProgress: number;
+    done: number;
+    highPriority: number;
+  };
 };
