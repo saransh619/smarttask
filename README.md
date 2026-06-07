@@ -234,6 +234,10 @@ pnpm typecheck
 
 ![Task dashboard](./screenshots/task-dashboard.png)
 
+### New Task Modal
+
+![New task modal](./screenshots/new-task-modal.png)
+
 ### Admin Users
 
 ![Admin users](./screenshots/admin-users.png)
