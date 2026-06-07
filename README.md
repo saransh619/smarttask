@@ -199,11 +199,21 @@ pnpm typecheck
 
 ## Screenshots
 
-Add screenshots here after running the app:
+### Authentication
 
-- Authentication screen
-- Task dashboard
-- Mobile layout
+![Authentication screen](./screenshots/authentication.png)
+
+### Task Dashboard
+
+![Task dashboard](./screenshots/task-dashboard.png)
+
+### Admin Users
+
+![Admin users](./screenshots/admin-users.png)
+
+### Mobile View
+
+![Mobile view](./screenshots/mobile-view.png)
 
 ## Deployment
 
