@@ -8,6 +8,11 @@ import { z } from "zod";
 import type { Task, TaskInput } from "@/types/task";
 import { parseTags } from "@/utils/tags";
 
+function dateInputValue(date = new Date()) {
+  const timezoneOffset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 10);
+}
+
 const schema = z.object({
   title: z.string().min(1, "Title is required").max(120),
   description: z.string().max(1000).optional(),
@@ -34,6 +39,9 @@ export function TaskForm({
   onCancelEdit,
   variant = "card",
 }: Props) {
+  const today = dateInputValue();
+  const selectedDueDate = selectedTask?.dueDate.slice(0, 10);
+  const minimumDueDate = selectedDueDate && selectedDueDate < today ? selectedDueDate : today;
   const {
     register,
     handleSubmit,
@@ -44,7 +52,7 @@ export function TaskForm({
     defaultValues: {
       title: "",
       description: "",
-      dueDate: new Date().toISOString().slice(0, 10),
+      dueDate: today,
       priority: "Medium",
       status: "Todo",
       tags: "",
@@ -78,7 +86,7 @@ export function TaskForm({
       reset({
         title: "",
         description: "",
-        dueDate: new Date().toISOString().slice(0, 10),
+        dueDate: today,
         priority: "Medium",
         status: "Todo",
         tags: "",
@@ -117,7 +125,12 @@ export function TaskForm({
       <div className="grid gap-4 sm:grid-cols-3">
         <label className="block">
           <span className="mb-2 block text-sm font-semibold text-slate-700">Due date</span>
-          <input type="date" {...register("dueDate")} className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600" />
+          <input
+            type="date"
+            min={minimumDueDate}
+            {...register("dueDate")}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
+          />
         </label>
         <label className="block">
           <span className="mb-2 block text-sm font-semibold text-slate-700">Priority</span>

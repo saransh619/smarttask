@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import app from "./app.js";
 import { connectDatabase } from "./config/database.js";
 import { seedSuperAdmin } from "./utils/seedSuperAdmin.js";
 
@@ -8,6 +7,8 @@ dotenv.config();
 const port = Number(process.env.PORT) || 5000;
 
 async function bootstrap() {
+  const { default: app } = await import("./app.js");
+
   await connectDatabase();
   await seedSuperAdmin();
 

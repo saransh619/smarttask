@@ -80,6 +80,7 @@ export const ServerErrors = {
     INVALID_ID: "Invalid task id",
     TITLE_REQUIRED: "Title is required",
     DUE_DATE_REQUIRED: "A valid due date is required",
+    DUE_DATE_PAST: "Due date cannot be in the past",
   },
   ADMIN: {
     STATS_FETCHED: "Admin statistics fetched successfully",

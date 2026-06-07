@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { Task } from "../models/Task.js";
 import { filterWithHashMaps, searchTasks, sortTasks } from "../ds/taskAlgorithms.js";
-import { ApiMeta, ServerErrors, ServerSuccess, SortBy } from "../utils/constants.js";
+import { ApiMeta, ServerErrors, ServerSuccess, SortBy, UserRole } from "../utils/constants.js";
 import { createPaginationMeta, getPagination } from "../utils/pagination.js";
 import { serverResponse } from "../utils/serverResponse.js";
 
@@ -11,13 +11,17 @@ function ownerId(req: Request) {
   return req.userId;
 }
 
+function taskAccessFilter(req: Request): { owner?: string } {
+  return req.role === UserRole.SUPER_ADMIN ? {} : { owner: ownerId(req) };
+}
+
 function normalizeTags(tags?: string[]) {
   return [...new Set((tags ?? []).map((tag) => tag.trim().toLowerCase()).filter(Boolean))];
 }
 
 export async function listTasks(req: Request, res: Response) {
   const { page, limit, skip } = getPagination(req);
-  const tasks = await Task.find({ owner: ownerId(req) }).lean();
+  const tasks = await Task.find(taskAccessFilter(req)).lean();
   const filtered = filterWithHashMaps(tasks, {
     status: typeof req.query.status === "string" ? req.query.status : undefined,
     priority: typeof req.query.priority === "string" ? req.query.priority : undefined,
@@ -55,7 +59,7 @@ export async function createTask(req: Request, res: Response) {
 }
 
 export async function getTask(req: Request, res: Response) {
-  const task = await Task.findOne({ _id: req.params.id, owner: ownerId(req) });
+  const task = await Task.findOne({ _id: req.params.id, ...taskAccessFilter(req) });
 
   if (!task) {
     serverResponse.notFound(res, ServerErrors.TASK.NOT_FOUND);
@@ -71,7 +75,7 @@ export async function updateTask(req: Request, res: Response) {
     ...(req.body.tags ? { tags: normalizeTags(req.body.tags) } : {}),
   };
   const task = await Task.findOneAndUpdate(
-    { _id: req.params.id, owner: ownerId(req) },
+    { _id: req.params.id, ...taskAccessFilter(req) },
     payload,
     { new: true, runValidators: true },
   );
@@ -85,7 +89,7 @@ export async function updateTask(req: Request, res: Response) {
 }
 
 export async function deleteTask(req: Request, res: Response) {
-  const task = await Task.findOneAndDelete({ _id: req.params.id, owner: ownerId(req) });
+  const task = await Task.findOneAndDelete({ _id: req.params.id, ...taskAccessFilter(req) });
 
   if (!task) {
     serverResponse.notFound(res, ServerErrors.TASK.NOT_FOUND);
