@@ -32,6 +32,7 @@ SmartTask is a full-stack, production-style task management system built with Ne
 - Merge Sort and Quick Sort for dynamic sorting
 - Binary Search for exact title lookup after sorted indexing
 - Hash Maps for efficient status, priority, and tag filtering
+- Arrays and Sets for pagination, deduplication, and result intersection
 
 ## Project Structure
 
