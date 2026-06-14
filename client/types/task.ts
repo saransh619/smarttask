@@ -8,6 +8,7 @@ export type Task = {
   dueDate: string;
   priority: TaskPriority;
   status: TaskStatus;
+  position?: number;
   tags: string[];
   createdAt: string;
   updatedAt: string;
@@ -20,6 +21,12 @@ export type TaskInput = {
   priority: TaskPriority;
   status: TaskStatus;
   tags: string[];
+};
+
+export type ReorderTaskInput = {
+  status: TaskStatus;
+  beforeTaskId?: string | null;
+  afterTaskId?: string | null;
 };
 
 export type User = {
@@ -76,5 +83,6 @@ export type PaginationMeta = {
     inProgress: number;
     done: number;
     highPriority: number;
+    overdue: number;
   };
 };

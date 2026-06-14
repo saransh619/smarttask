@@ -2,6 +2,7 @@ import type {
   AdminStats,
   AdminUser,
   PaginationMeta,
+  ReorderTaskInput,
   Task,
   TaskFilters,
   TaskInput,
@@ -90,6 +91,12 @@ export const api = {
 
   updateTask: (id: string, payload: Partial<TaskInput>) =>
     request<{ task: Task }>(`/tasks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  reorderTask: (id: string, payload: ReorderTaskInput) =>
+    request<{ task: Task }>(`/tasks/${id}/reorder`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),

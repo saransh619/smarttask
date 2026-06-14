@@ -16,13 +16,25 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-const authSchema = z.object({
-  name: z.string().min(2, "Name is required").optional().or(z.literal("")),
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+const emailSchema = z.string().min(1, "Email is required").email("Enter a valid email");
+
+const loginSchema = z.object({
+  name: z.string().optional(),
+  email: emailSchema,
+  password: z.string().min(1, "Password is required"),
 });
 
-export type AuthValues = z.infer<typeof authSchema>;
+const registerSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").min(2, "Name must be at least 2 characters"),
+  email: z.string().min(1, "Email is required").email("Enter a valid email"),
+  password: z.string().min(1, "Password is required").min(8, "Password must be at least 8 characters"),
+});
+
+export type AuthValues = {
+  name?: string;
+  email: string;
+  password: string;
+};
 
 type Props = {
   onSubmit: (mode: "login" | "register", values: AuthValues) => Promise<void>;
@@ -32,14 +44,26 @@ type Props = {
 export function AuthPanel({ onSubmit, isLoading }: Props) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
+  const authSchema = mode === "login" ? loginSchema : registerSchema;
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<AuthValues>({
     resolver: zodResolver(authSchema),
     defaultValues: { name: "", email: "", password: "" },
   });
+
+  function changeMode(nextMode: "login" | "register") {
+    if (nextMode === mode) {
+      return;
+    }
+
+    setMode(nextMode);
+    setShowPassword(false);
+    reset({ name: "", email: "", password: "" });
+  }
 
   return (
     <section className="grid min-h-screen bg-[#f5f7fb] text-slate-950 lg:grid-cols-[1.05fr_0.95fr]">
@@ -79,7 +103,7 @@ export function AuthPanel({ onSubmit, isLoading }: Props) {
             <div className="rounded-lg border border-white/10 bg-white/[0.08] p-4">
               <CheckCircle2 className="mb-4 h-5 w-5 text-amber-300" />
               <p className="text-sm font-bold">Progress</p>
-              <p className="mt-2 text-sm text-slate-300">Move tasks from todo to done.</p>
+              <p className="mt-2 text-sm text-slate-300">Move tasks through each stage.</p>
             </div>
           </div>
         </div>
@@ -108,7 +132,7 @@ export function AuthPanel({ onSubmit, isLoading }: Props) {
           <div className="mb-6 flex rounded-lg bg-slate-100 p-1">
             <button
               type="button"
-              onClick={() => setMode("login")}
+              onClick={() => changeMode("login")}
               className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${
                 mode === "login" ? "bg-white text-slate-950 shadow-sm" : "text-slate-600"
               }`}
@@ -118,7 +142,7 @@ export function AuthPanel({ onSubmit, isLoading }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => setMode("register")}
+              onClick={() => changeMode("register")}
               className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${
                 mode === "register" ? "bg-white text-slate-950 shadow-sm" : "text-slate-600"
               }`}
@@ -157,7 +181,7 @@ export function AuthPanel({ onSubmit, isLoading }: Props) {
                 {...register("password")}
                 type={showPassword ? "text" : "password"}
                 className="w-full rounded-lg border border-slate-300 px-4 py-3 pr-12 outline-none focus:border-emerald-600"
-                placeholder="Minimum 8 characters"
+                placeholder={mode === "login" ? "Enter your password" : "Minimum 8 characters"}
               />
               <button
                 type="button"

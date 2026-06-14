@@ -11,6 +11,7 @@ const taskSchema = new Schema(
     dueDate: { type: Date, required: true },
     priority: { type: String, enum: taskPriorities, default: TaskPriority.MEDIUM },
     status: { type: String, enum: taskStatuses, default: TaskStatus.TODO },
+    position: { type: Number, default: 0, index: true },
     tags: [{ type: String, trim: true, lowercase: true }],
     owner: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
   },
@@ -19,6 +20,7 @@ const taskSchema = new Schema(
 
 taskSchema.index({ owner: 1, dueDate: 1, priority: 1, status: 1 });
 taskSchema.index({ owner: 1, title: 1 });
+taskSchema.index({ owner: 1, status: 1, position: 1 });
 
 export type TaskDocument = InferSchemaType<typeof taskSchema>;
 export const Task = model("Task", taskSchema);

@@ -19,9 +19,13 @@ SmartTask is a full-stack, production-style task management system built with Ne
 - API rate limiting for general traffic and stricter auth protection
 - Startup superadmin seeding from environment variables
 - Full task CRUD over REST APIs
+- Swagger/OpenAPI API documentation with Basic Auth protection
 - Task fields: title, description, due date, priority, status, and tags
 - Smart prioritization by due date and priority
 - Search, status filters, priority filters, tag filters, and dynamic sorting
+- Sort tasks by smart priority, due date, priority, status, title, or created date
+- List view for searchable task management and Kanban-style board view for drag-and-drop workflow
+- Drag tasks between Todo, In Progress, and Done columns to update status
 - Pagination for task lists and admin user lists
 - Superadmin statistics using MongoDB aggregation
 - Responsive Next.js dashboard with loading states, validation, and toast notifications
@@ -29,7 +33,7 @@ SmartTask is a full-stack, production-style task management system built with Ne
 ## DSA Highlights
 
 - Priority Queue using a binary heap for smart task ordering
-- Merge Sort and Quick Sort for dynamic sorting
+- Merge Sort and Quick Sort for API-level dynamic sorting
 - Binary Search for exact title lookup after sorted indexing
 - Hash Maps for efficient status, priority, and tag filtering
 - Arrays and Sets for pagination, deduplication, and result intersection
@@ -40,7 +44,7 @@ SmartTask is a full-stack, production-style task management system built with Ne
 smarttask/
 ├── client/   # Next.js 16 + React 19 + TypeScript + Tailwind CSS v4
 ├── server/   # Node.js + Express + TypeScript + MongoDB + DSA modules
-├── screenshots/   # README screenshots
+├── screenshots/   # application screenshots
 └── README.md
 ```
 
@@ -112,9 +116,12 @@ CLIENT_URL=http://localhost:3000
 MONGODB_URI=mongodb://127.0.0.1:27017/smarttask
 JWT_SECRET=replace-with-a-long-random-secret
 JWT_EXPIRES_IN=7d
+API_BASE_URL=http://localhost:5000
+SWAGGER_USERNAME=admin
+SWAGGER_PASSWORD=write-your-password
 SUPER_ADMIN_NAME=SmartTask Superadmin
 SUPER_ADMIN_EMAIL=admin@smarttask.com
-SUPER_ADMIN_PASSWORD=change-this-password
+SUPER_ADMIN_PASSWORD=write-your-password
 ```
 
 If the superadmin env values are present, the backend checks at startup whether a superadmin already exists. If not, it seeds one automatically.
@@ -123,7 +130,7 @@ Default local superadmin credentials from the example above:
 
 ```bash
 Email: admin@smarttask.com
-Password: change-this-password
+Password: write-your-password
 ```
 
 Change the password before deployment.
@@ -131,6 +138,20 @@ Change the password before deployment.
 ## API Documentation
 
 Base URL: `http://localhost:5000/api`
+
+Swagger UI is available at:
+
+```bash
+http://localhost:5000/api/docs
+```
+
+The OpenAPI JSON spec is available at:
+
+```bash
+http://localhost:5000/api/docs.json
+```
+
+Swagger routes are protected with HTTP Basic Auth using `SWAGGER_USERNAME` and `SWAGGER_PASSWORD`.
 
 All API responses use one consistent envelope:
 
@@ -174,9 +195,14 @@ priority=High
 tag=college
 sortBy=smart|dueDate|priority|status|title|createdAt
 sortOrder=asc|desc
-algorithm=merge|quick
 page=1
 limit=10
+```
+
+DSA sorting method is supported at the API level for demonstration and testing:
+
+```bash
+algorithm=merge|quick
 ```
 
 ### Admin
@@ -203,6 +229,7 @@ limit=10
 - `/api` routes use a general rate limiter.
 - `/auth/login` and `/auth/register` use a stricter rate limiter for brute-force protection.
 - `/auth/session` is marked `no-store` to avoid cached session state.
+- Swagger documentation is protected with HTTP Basic Auth and timing-safe credential comparison.
 
 ## Scripts
 
@@ -230,9 +257,17 @@ pnpm typecheck
 
 ![Authentication screen](./screenshots/authentication.png)
 
-### Task Dashboard
+### Task List View
 
-![Task dashboard](./screenshots/task-dashboard.png)
+![Task list view](./screenshots/list-view.png)
+
+### Task Board View
+
+![Task board view](./screenshots/board-view.png)
+
+### Board Drag And Drop
+
+![Board drag and drop](./screenshots/board-drag-drop.png)
 
 ### New Task Modal
 
@@ -241,10 +276,6 @@ pnpm typecheck
 ### Admin Users
 
 ![Admin users](./screenshots/admin-users.png)
-
-### Mobile View
-
-![Mobile view](./screenshots/mobile-view.png)
 
 ## Deployment
 
@@ -270,9 +301,12 @@ Render backend environment variables:
 ```bash
 NODE_ENV=production
 CLIENT_URL=https://your-frontend-domain.vercel.app
+API_BASE_URL=https://your-backend-domain.onrender.com
 MONGODB_URI=your-mongodb-atlas-uri
 JWT_SECRET=your-long-random-secret
 JWT_EXPIRES_IN=7d
+SWAGGER_USERNAME=admin
+SWAGGER_PASSWORD=your-strong-docs-password
 SUPER_ADMIN_NAME=SmartTask Superadmin
 SUPER_ADMIN_EMAIL=admin@example.com
 SUPER_ADMIN_PASSWORD=your-strong-password

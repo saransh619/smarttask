@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { api } from "@/lib/api";
-import type { Task, TaskFilters, TaskInput, TaskStatus } from "@/types/task";
+import type { ReorderTaskInput, Task, TaskFilters, TaskInput, TaskStatus } from "@/types/task";
+import { isPastDate } from "@/utils/date";
 
 const initialFilters: TaskFilters = {
   search: "",
@@ -63,7 +64,7 @@ export function useTaskWorkspace({ isSuperAdmin, notify }: Args) {
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: TaskStatus }) =>
-      api.updateTask(id, { status }),
+      api.reorderTask(id, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       if (isSuperAdmin) {
@@ -74,14 +75,27 @@ export function useTaskWorkspace({ isSuperAdmin, notify }: Args) {
     onError: (error: Error) => notify("error", error.message),
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: ReorderTaskInput }) =>
+      api.reorderTask(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      if (isSuperAdmin) {
+        queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+      }
+    },
+    onError: (error: Error) => notify("error", error.message),
+  });
+
   const tasks = tasksQuery.data?.tasks ?? [];
   const pagination = tasksQuery.data?.meta;
   const todo = pagination?.stats?.todo ?? tasks.filter((task) => task.status === "Todo").length;
   const inProgress =
     pagination?.stats?.inProgress ?? tasks.filter((task) => task.status === "In Progress").length;
   const completed = pagination?.stats?.done ?? tasks.filter((task) => task.status === "Done").length;
-  const urgent =
-    pagination?.stats?.highPriority ?? tasks.filter((task) => task.priority === "High").length;
+  const overdue =
+    pagination?.stats?.overdue ??
+    tasks.filter((task) => task.status !== "Done" && isPastDate(task.dueDate)).length;
 
   function updateFilters(nextFilters: Partial<TaskFilters>) {
     setFilters((currentFilters) => ({
@@ -113,18 +127,21 @@ export function useTaskWorkspace({ isSuperAdmin, notify }: Args) {
     todo,
     inProgress,
     completed,
-    urgent,
+    overdue,
     selectedTask,
     isTaskFormOpen,
     tasksQuery,
     saveMutation,
     statusMutation,
+    reorderMutation,
     updateFilters,
     openCreateTask,
     openEditTask,
     closeTaskForm,
     saveTask: (task: TaskInput) => saveMutation.mutate(task),
     updateTaskStatus: (id: string, status: TaskStatus) => statusMutation.mutate({ id, status }),
+    reorderTask: (id: string, payload: ReorderTaskInput) =>
+      reorderMutation.mutate({ id, payload }),
     deleteTask: (id: string) => deleteMutation.mutate(id),
   };
 }

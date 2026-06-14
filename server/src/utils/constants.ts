@@ -118,6 +118,7 @@ export const ServerSuccess = {
     LISTED: "Tasks fetched successfully",
     FETCHED: "Task fetched successfully",
     UPDATED: "Task updated successfully",
+    REORDERED: "Task reordered successfully",
     DELETED: "Task deleted successfully",
   },
 } as const;

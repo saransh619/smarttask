@@ -3,7 +3,9 @@
 import {
   Brain,
   AlertTriangle,
+  CalendarPlus,
   LayoutDashboard,
+  Columns3,
   ListTodo,
   Loader2,
   LogOut,
@@ -12,14 +14,15 @@ import {
   SlidersHorizontal,
   Users,
 } from "lucide-react";
-import type { ReactNode } from "react";
-import { useState } from "react";
+import type { DragEvent, ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useAdminDashboard } from "@/hooks/useAdminDashboard";
 import { useTaskWorkspace } from "@/hooks/useTaskWorkspace";
 import type {
   AdminStats,
   AdminUser,
   PaginationMeta,
+  ReorderTaskInput,
   Task,
   TaskFilters,
   TaskStatus,
@@ -36,6 +39,13 @@ type Props = {
 };
 
 type DashboardView = "tasks" | "users";
+type TaskLayout = "list" | "board";
+
+const taskColumns: Array<{ title: TaskStatus; label: string }> = [
+  { title: "Todo", label: "Todo" },
+  { title: "In Progress", label: "In Progress" },
+  { title: "Done", label: "Done" },
+];
 
 export function TaskDashboard({ user, onLogout, notify }: Props) {
   const [activeView, setActiveView] = useState<DashboardView>("tasks");
@@ -112,7 +122,7 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
           todo={taskWorkspace.todo}
           inProgress={taskWorkspace.inProgress}
           completed={taskWorkspace.completed}
-          urgent={taskWorkspace.urgent}
+          overdue={taskWorkspace.overdue}
           pagination={taskWorkspace.pagination}
           filters={taskWorkspace.filters}
           isLoading={taskWorkspace.tasksQuery.isLoading}
@@ -122,12 +132,14 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
           onCreateTask={taskWorkspace.openCreateTask}
           onEditTask={taskWorkspace.openEditTask}
           onUpdateTaskStatus={taskWorkspace.updateTaskStatus}
+          onReorderTask={taskWorkspace.reorderTask}
           onDeleteTask={setTaskToDelete}
         />
       )}
 
       <Modal
         title={taskWorkspace.selectedTask ? "Edit task" : "New task"}
+        titleIcon={<CalendarPlus className="h-5 w-5 text-emerald-600" />}
         isOpen={taskWorkspace.isTaskFormOpen}
         onClose={taskWorkspace.closeTaskForm}
       >
@@ -135,7 +147,6 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
           selectedTask={taskWorkspace.selectedTask}
           isSaving={taskWorkspace.saveMutation.isPending}
           onSubmit={taskWorkspace.saveTask}
-          onCancelEdit={taskWorkspace.closeTaskForm}
           variant="plain"
         />
       </Modal>
@@ -187,7 +198,7 @@ function TasksView({
   todo,
   inProgress,
   completed,
-  urgent,
+  overdue,
   pagination,
   filters,
   isLoading,
@@ -197,13 +208,14 @@ function TasksView({
   onCreateTask,
   onEditTask,
   onUpdateTaskStatus,
+  onReorderTask,
   onDeleteTask,
 }: {
   tasks: Task[];
   todo: number;
   inProgress: number;
   completed: number;
-  urgent: number;
+  overdue: number;
   pagination?: {
     total: number;
     page: number;
@@ -219,18 +231,104 @@ function TasksView({
   onCreateTask: () => void;
   onEditTask: (task: Task) => void;
   onUpdateTaskStatus: (id: string, status: TaskStatus) => void;
+  onReorderTask: (id: string, payload: ReorderTaskInput) => void;
   onDeleteTask: (task: Task) => void;
 }) {
+  const [taskLayout, setTaskLayout] = useState<TaskLayout>("list");
+
+  const stats = (
+    <>
+      <Stat label="Total" value={pagination?.total ?? tasks.length} />
+      <Stat label="Todo" value={todo} />
+      <Stat label="In progress" value={inProgress} />
+      <Stat label="Done" value={completed} />
+      <Stat label="Overdue" value={overdue} />
+    </>
+  );
+
+  const filtersPanel = (
+    <TaskFiltersPanel
+      filters={filters}
+      taskLayout={taskLayout}
+      onChangeLayout={setTaskLayout}
+      onUpdateFilters={onUpdateFilters}
+    />
+  );
+
+  const taskState = (
+    <>
+      {isLoading && (
+        <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-white py-16 text-slate-500">
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          Loading tasks
+        </div>
+      )}
+
+      {isError && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 font-semibold text-rose-700">
+          {error?.message ?? "Unable to load tasks"}
+        </div>
+      )}
+
+      {!isLoading && tasks.length === 0 && (
+        <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center">
+          <h2 className="text-lg font-bold text-slate-950">No tasks found</h2>
+          <p className="mt-2 text-sm text-slate-500">Create a task or change the current filters.</p>
+        </div>
+      )}
+    </>
+  );
+
+  const paginationControls = pagination && pagination.totalPages > 1 && (
+    <PaginationControls
+      page={pagination.page}
+      total={pagination.total}
+      totalPages={pagination.totalPages}
+      hasPreviousPage={pagination.hasPreviousPage}
+      hasNextPage={pagination.hasNextPage}
+      label="tasks"
+      onPrevious={() => onUpdateFilters({ page: filters.page - 1 })}
+      onNext={() => onUpdateFilters({ page: filters.page + 1 })}
+    />
+  );
+
+  if (taskLayout === "board") {
+    return (
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
+        <section className="grid gap-4 xl:grid-cols-[1fr_260px] xl:items-start">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{stats}</div>
+          <button
+            type="button"
+            onClick={onCreateTask}
+            className="btn-primary w-full px-4 py-3 xl:self-center"
+          >
+            <Plus className="h-5 w-5" />
+            Create new task
+          </button>
+        </section>
+
+        <section className="space-y-4">
+          {filtersPanel}
+          {taskState}
+          {tasks.length > 0 && (
+            <TaskBoard
+              tasks={tasks}
+              onEditTask={onEditTask}
+              onReorderTask={onReorderTask}
+              onUpdateTaskStatus={onUpdateTaskStatus}
+              onDeleteTask={onDeleteTask}
+            />
+          )}
+          {paginationControls}
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[390px_1fr]">
       <aside className="space-y-4 lg:sticky lg:top-36 lg:self-start">
-        <div className="grid grid-cols-2 gap-3">
-          <Stat label="Total" value={pagination?.total ?? tasks.length} />
-          <Stat label="Todo" value={todo} />
-          <Stat label="In progress" value={inProgress} />
-          <Stat label="Done" value={completed} />
-          <Stat label="High" value={urgent} />
-        </div>
+        <div className="grid grid-cols-2 gap-3">{stats}</div>
         <button
           type="button"
           onClick={onCreateTask}
@@ -242,119 +340,8 @@ function TasksView({
       </aside>
 
       <section className="space-y-4">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 font-bold text-slate-950">
-            <SlidersHorizontal className="h-5 w-5 text-emerald-600" />
-            Search and filters
-          </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <label className="space-y-1 md:col-span-2">
-              <span className="text-xs font-bold uppercase text-slate-500">Search</span>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <input
-                  value={filters.search}
-                  onChange={(event) => onUpdateFilters({ search: event.target.value })}
-                  placeholder="Title, description, or tag"
-                  className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 outline-none focus:border-emerald-600"
-                />
-              </div>
-            </label>
-            <Select
-              label="Status"
-              value={filters.status}
-              onChange={(value) => onUpdateFilters({ status: value as TaskFilters["status"] })}
-              options={[
-                { label: "All statuses", value: "All" },
-                { label: "Todo", value: "Todo" },
-                { label: "In progress", value: "In Progress" },
-                { label: "Done", value: "Done" },
-              ]}
-            />
-            <Select
-              label="Priority"
-              value={filters.priority}
-              onChange={(value) => onUpdateFilters({ priority: value as TaskFilters["priority"] })}
-              options={[
-                { label: "All priorities", value: "All" },
-                { label: "High", value: "High" },
-                { label: "Medium", value: "Medium" },
-                { label: "Low", value: "Low" },
-              ]}
-            />
-            <label className="space-y-1">
-              <span className="text-xs font-bold uppercase text-slate-500">Tag</span>
-              <input
-                value={filters.tag}
-                onChange={(event) => onUpdateFilters({ tag: event.target.value })}
-                placeholder="Filter by tag"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
-              />
-            </label>
-            <Select
-              label="Sort by"
-              value={filters.sortBy}
-              onChange={(value) => onUpdateFilters({ sortBy: value as TaskFilters["sortBy"] })}
-              options={[
-                { label: "Smart priority", value: "smart" },
-                { label: "Due date", value: "dueDate" },
-                { label: "Priority", value: "priority" },
-                { label: "Status", value: "status" },
-                { label: "Title", value: "title" },
-                { label: "Created date", value: "createdAt" },
-              ]}
-            />
-            <Select
-              label="Order"
-              value={filters.sortOrder}
-              onChange={(value) => onUpdateFilters({ sortOrder: value as TaskFilters["sortOrder"] })}
-              options={[
-                { label: "Ascending", value: "asc" },
-                { label: "Descending", value: "desc" },
-              ]}
-            />
-            <Select
-              label="Method"
-              value={filters.algorithm}
-              onChange={(value) => onUpdateFilters({ algorithm: value as TaskFilters["algorithm"] })}
-              options={[
-                { label: "Merge sort", value: "merge" },
-                { label: "Quick sort", value: "quick" },
-              ]}
-            />
-            <Select
-              label="Page size"
-              value={String(filters.limit)}
-              onChange={(value) => onUpdateFilters({ limit: Number(value) })}
-              options={[
-                { label: "5 per page", value: "5" },
-                { label: "10 per page", value: "10" },
-                { label: "20 per page", value: "20" },
-                { label: "50 per page", value: "50" },
-              ]}
-            />
-          </div>
-        </div>
-
-        {isLoading && (
-          <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-white py-16 text-slate-500">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            Loading tasks
-          </div>
-        )}
-
-        {isError && (
-          <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 font-semibold text-rose-700">
-            {error?.message ?? "Unable to load tasks"}
-          </div>
-        )}
-
-        {!isLoading && tasks.length === 0 && (
-          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center">
-            <h2 className="text-lg font-bold text-slate-950">No tasks found</h2>
-            <p className="mt-2 text-sm text-slate-500">Create a task or change the current filters.</p>
-          </div>
-        )}
+        {filtersPanel}
+        {taskState}
 
         <div className="grid gap-4 xl:grid-cols-2">
           {tasks.map((task) => (
@@ -368,21 +355,289 @@ function TasksView({
           ))}
         </div>
 
-        {pagination && pagination.totalPages > 1 && (
-          <PaginationControls
-            page={pagination.page}
-            total={pagination.total}
-            totalPages={pagination.totalPages}
-            hasPreviousPage={pagination.hasPreviousPage}
-            hasNextPage={pagination.hasNextPage}
-            label="tasks"
-            onPrevious={() => onUpdateFilters({ page: filters.page - 1 })}
-            onNext={() => onUpdateFilters({ page: filters.page + 1 })}
-          />
-        )}
+        {paginationControls}
       </section>
     </div>
   );
+}
+
+function TaskFiltersPanel({
+  filters,
+  taskLayout,
+  onChangeLayout,
+  onUpdateFilters,
+}: {
+  filters: TaskFilters;
+  taskLayout: TaskLayout;
+  onChangeLayout: (layout: TaskLayout) => void;
+  onUpdateFilters: (filters: Partial<TaskFilters>) => void;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-2 font-bold text-slate-950">
+          <SlidersHorizontal className="h-5 w-5 text-emerald-600" />
+          Search and filters
+        </div>
+        <div className="flex w-full rounded-lg bg-slate-100 p-1 md:w-fit">
+          <LayoutButton
+            active={taskLayout === "list"}
+            icon={<ListTodo className="h-4 w-4" />}
+            label="List"
+            onClick={() => onChangeLayout("list")}
+          />
+          <LayoutButton
+            active={taskLayout === "board"}
+            icon={<Columns3 className="h-4 w-4" />}
+            label="Board"
+            onClick={() => onChangeLayout("board")}
+          />
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <label className="space-y-1 md:col-span-2">
+          <span className="text-xs font-bold uppercase text-slate-500">Search</span>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+            <input
+              value={filters.search}
+              onChange={(event) => onUpdateFilters({ search: event.target.value })}
+              placeholder="Title, description, or tag"
+              className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 outline-none focus:border-emerald-600"
+            />
+          </div>
+        </label>
+        <Select
+          label="Status"
+          value={filters.status}
+          onChange={(value) => onUpdateFilters({ status: value as TaskFilters["status"] })}
+          options={[
+            { label: "All statuses", value: "All" },
+            { label: "Todo", value: "Todo" },
+            { label: "In progress", value: "In Progress" },
+            { label: "Done", value: "Done" },
+          ]}
+        />
+        <Select
+          label="Priority"
+          value={filters.priority}
+          onChange={(value) => onUpdateFilters({ priority: value as TaskFilters["priority"] })}
+          options={[
+            { label: "All priorities", value: "All" },
+            { label: "High", value: "High" },
+            { label: "Medium", value: "Medium" },
+            { label: "Low", value: "Low" },
+          ]}
+        />
+        <label className="space-y-1">
+          <span className="text-xs font-bold uppercase text-slate-500">Tag</span>
+          <input
+            value={filters.tag}
+            onChange={(event) => onUpdateFilters({ tag: event.target.value })}
+            placeholder="Filter by tag"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
+          />
+        </label>
+        <Select
+          label="Sort by"
+          value={filters.sortBy}
+          onChange={(value) => onUpdateFilters({ sortBy: value as TaskFilters["sortBy"] })}
+          options={[
+            { label: "Smart priority", value: "smart" },
+            { label: "Due date", value: "dueDate" },
+            { label: "Priority", value: "priority" },
+            { label: "Status", value: "status" },
+            { label: "Title", value: "title" },
+            { label: "Created date", value: "createdAt" },
+          ]}
+        />
+        <Select
+          label="Order"
+          value={filters.sortOrder}
+          onChange={(value) => onUpdateFilters({ sortOrder: value as TaskFilters["sortOrder"] })}
+          options={[
+            { label: "Ascending", value: "asc" },
+            { label: "Descending", value: "desc" },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TaskBoard({
+  tasks,
+  onEditTask,
+  onReorderTask,
+  onUpdateTaskStatus,
+  onDeleteTask,
+}: {
+  tasks: Task[];
+  onEditTask: (task: Task) => void;
+  onReorderTask: (id: string, payload: ReorderTaskInput) => void;
+  onUpdateTaskStatus: (id: string, status: TaskStatus) => void;
+  onDeleteTask: (task: Task) => void;
+}) {
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ status: TaskStatus; index: number } | null>(null);
+
+  useEffect(() => {
+    function clearDragState() {
+      setDraggedTaskId(null);
+      setDropTarget(null);
+    }
+
+    window.addEventListener("dragend", clearDragState);
+    window.addEventListener("drop", clearDragState);
+    window.addEventListener("blur", clearDragState);
+
+    return () => {
+      window.removeEventListener("dragend", clearDragState);
+      window.removeEventListener("drop", clearDragState);
+      window.removeEventListener("blur", clearDragState);
+    };
+  }, []);
+
+  function moveTask(event: DragEvent<HTMLElement>, nextStatus: TaskStatus) {
+    event.preventDefault();
+    const taskId = event.dataTransfer.getData("text/plain") || draggedTaskId;
+    const task = tasks.find((item) => item._id === taskId);
+    const targetTasks = getColumnTasks(tasks, nextStatus).filter((item) => item._id !== taskId);
+    const fallbackIndex = targetTasks.length;
+    const insertIndex =
+      dropTarget?.status === nextStatus
+        ? Math.min(dropTarget.index, targetTasks.length)
+        : fallbackIndex;
+    const beforeTaskId = targetTasks[insertIndex]?._id ?? null;
+    const afterTaskId = insertIndex > 0 ? targetTasks[insertIndex - 1]?._id ?? null : null;
+
+    setDraggedTaskId(null);
+    setDropTarget(null);
+
+    if (!task) {
+      return;
+    }
+
+    onReorderTask(task._id, {
+      status: nextStatus,
+      beforeTaskId,
+      afterTaskId,
+    });
+  }
+
+  function showDropTarget(event: DragEvent<HTMLElement>, nextStatus: TaskStatus, index: number) {
+    event.preventDefault();
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const insertAfter = event.clientY > bounds.top + bounds.height / 2;
+
+    setDropTarget({
+      status: nextStatus,
+      index: insertAfter ? index + 1 : index,
+    });
+  }
+
+  function DropPlaceholder() {
+    return (
+      <div
+        aria-hidden="true"
+        className="min-h-32 rounded-lg border-2 border-dashed border-emerald-200 bg-emerald-50/60 transition-all duration-200"
+      />
+    );
+  }
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-3">
+      {taskColumns.map((column) => {
+        const columnTasks = getColumnTasks(tasks, column.title);
+        const visibleTasks = columnTasks;
+
+        return (
+          <section
+            key={column.title}
+            onDragOver={(event) => {
+              event.preventDefault();
+              if (visibleTasks.length === 0) {
+                setDropTarget({ status: column.title, index: 0 });
+              }
+            }}
+            onDrop={(event) => moveTask(event, column.title)}
+            onDragLeave={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                setDropTarget(null);
+              }
+            }}
+            className="min-h-[32rem] rounded-lg border border-slate-200 bg-slate-100/70 p-4"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-bold uppercase text-slate-600">{column.label}</h3>
+              <span className="rounded-full bg-white px-2 py-1 text-xs font-bold text-slate-500">
+                {columnTasks.length}
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {visibleTasks.map((task, index) => (
+                <div key={task._id} className="space-y-3">
+                  {dropTarget?.status === column.title && dropTarget.index === index && (
+                    <DropPlaceholder />
+                  )}
+                  <div
+                    draggable
+                    onDragOver={(event) => showDropTarget(event, column.title, index)}
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData("text/plain", task._id);
+                      event.dataTransfer.effectAllowed = "move";
+                      setDraggedTaskId(task._id);
+                    }}
+                    onDragEnd={() => {
+                      setDraggedTaskId(null);
+                      setDropTarget(null);
+                    }}
+                    className={`cursor-grab transition-all duration-200 active:cursor-grabbing ${
+                      draggedTaskId === task._id ? "opacity-40" : ""
+                    }`}
+                  >
+                    <TaskCard
+                      task={task}
+                      onEdit={onEditTask}
+                      onUpdateStatus={onUpdateTaskStatus}
+                      onDelete={() => onDeleteTask(task)}
+                      showStatusAction={false}
+                      showCompletionLabel={false}
+                    />
+                  </div>
+                </div>
+              ))}
+
+              {dropTarget?.status === column.title && dropTarget.index === visibleTasks.length && (
+                <DropPlaceholder />
+              )}
+
+              {visibleTasks.length === 0 && dropTarget?.status !== column.title && (
+                <div className="rounded-lg border border-dashed border-slate-300 bg-white/70 p-6 text-center text-sm font-semibold text-slate-500">
+                  Drop tasks here
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function getColumnTasks(tasks: Task[], status: TaskStatus) {
+  return tasks
+    .filter((task) => task.status === status)
+    .sort((first, second) => {
+      const positionDiff = (first.position ?? 0) - (second.position ?? 0);
+
+      if (positionDiff !== 0) {
+        return positionDiff;
+      }
+
+      return new Date(first.createdAt).getTime() - new Date(second.createdAt).getTime();
+    });
 }
 
 function AdminUsersView({
@@ -510,6 +765,31 @@ function ViewButton({
         active
           ? "bg-emerald-600 text-white shadow-sm"
           : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function LayoutButton({
+  active,
+  icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-bold md:flex-none ${
+        active ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-950"
       }`}
     >
       {icon}
