@@ -117,13 +117,35 @@ export function searchTasks<T extends TaskLike>(tasks: T[], search?: string) {
 }
 
 function compareSmart<T extends TaskLike>(a: T, b: T) {
-  const dueDiff = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+  const overdueDiff = Number(isOverdue(b)) - Number(isOverdue(a));
+
+  if (overdueDiff !== 0) {
+    return overdueDiff;
+  }
+
+  const dueDiff = getDateOnlyTime(a.dueDate) - getDateOnlyTime(b.dueDate);
 
   if (dueDiff !== 0) {
     return dueDiff;
   }
 
   return (priorityWeight.get(a.priority) ?? 99) - (priorityWeight.get(b.priority) ?? 99);
+}
+
+function isOverdue(task: TaskLike) {
+  return task.status !== "Done" && getDateOnlyTime(task.dueDate) < getTodayTime();
+}
+
+function getDateOnlyTime(value: Date | string) {
+  const date = new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function getTodayTime() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today.getTime();
 }
 
 function getComparator<T extends TaskLike>(sortBy: Exclude<SortBy, "smart">, sortOrder: SortOrder) {

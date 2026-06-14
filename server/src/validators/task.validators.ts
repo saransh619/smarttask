@@ -40,6 +40,13 @@ export const updateTaskRules = [
   body("tags.*").optional().trim().isLength({ min: 1, max: 32 }),
 ];
 
+export const reorderTaskRules = [
+  ...taskIdRule,
+  body("status").isIn(taskStatuses),
+  body("beforeTaskId").optional({ nullable: true }).isMongoId(),
+  body("afterTaskId").optional({ nullable: true }).isMongoId(),
+];
+
 export const listTaskRules = [
   query("status").optional().isIn(taskStatuses),
   query("priority").optional().isIn(taskPriorities),
