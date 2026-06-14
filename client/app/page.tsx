@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AuthPanel, type AuthValues } from "@/components/auth/AuthPanel";
 import { TaskDashboard } from "@/components/tasks/TaskDashboard";
@@ -63,11 +64,14 @@ export default function HomePage() {
   }, [toast]);
 
   const user = meQuery.data?.user;
+  const isCheckingSession = meQuery.isPending && !skipSessionCheck;
 
   return (
     <>
       <Toast toast={toast} />
-      {user ? (
+      {isCheckingSession ? (
+        <SessionLoader />
+      ) : user ? (
         <TaskDashboard
           user={user}
           notify={notify}
@@ -82,5 +86,13 @@ export default function HomePage() {
         />
       )}
     </>
+  );
+}
+
+function SessionLoader() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+      <Loader2 className="h-8 w-8 animate-spin text-emerald-600" aria-label="Loading" />
+    </main>
   );
 }

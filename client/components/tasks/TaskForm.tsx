@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarPlus, Loader2, Save } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -28,7 +28,6 @@ type Props = {
   selectedTask: Task | null;
   isSaving: boolean;
   onSubmit: (task: TaskInput) => void;
-  onCancelEdit: () => void;
   variant?: "card" | "plain";
 };
 
@@ -36,7 +35,6 @@ export function TaskForm({
   selectedTask,
   isSaving,
   onSubmit,
-  onCancelEdit,
   variant = "card",
 }: Props) {
   const today = dateInputValue();
@@ -99,18 +97,6 @@ export function TaskForm({
       onSubmit={handleSubmit(submit)}
       className={variant === "card" ? "rounded-lg border border-slate-200 bg-white p-5 shadow-sm" : ""}
     >
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-950">
-          <CalendarPlus className="h-5 w-5 text-emerald-600" />
-          {selectedTask ? "Edit task" : "New task"}
-        </h2>
-        {selectedTask && (
-          <button type="button" onClick={onCancelEdit} className="text-sm font-semibold text-slate-500 hover:text-slate-950">
-            Cancel
-          </button>
-        )}
-      </div>
-
       <label className="mb-4 block">
         <span className="mb-2 block text-sm font-semibold text-slate-700">Title</span>
         <input {...register("title")} className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600" />
