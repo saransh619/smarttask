@@ -53,6 +53,9 @@ export async function login(req: Request, res: Response) {
     return;
   }
 
+  user.lastLogin = new Date();
+  await user.save();
+
   const token = signAccessToken(String(user._id), user.role);
   setAuthCookie(res, token);
   serverResponse.success(res, ServerSuccess.AUTH.LOGIN, {

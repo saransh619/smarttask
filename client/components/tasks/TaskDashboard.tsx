@@ -113,6 +113,8 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
           stats={adminDashboard.statsQuery.data}
           usersData={adminDashboard.usersQuery.data}
           isLoading={adminDashboard.usersQuery.isLoading}
+          search={adminDashboard.search}
+          onSearchChange={adminDashboard.setSearch}
           onPreviousPage={adminDashboard.previousUsersPage}
           onNextPage={adminDashboard.nextUsersPage}
         />
@@ -644,12 +646,16 @@ function AdminUsersView({
   stats,
   usersData,
   isLoading,
+  search,
+  onSearchChange,
   onPreviousPage,
   onNextPage,
 }: {
   stats?: AdminStats;
   usersData?: { users: AdminUser[]; meta: PaginationMeta };
   isLoading: boolean;
+  search: string;
+  onSearchChange: (value: string) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
 }) {
@@ -660,7 +666,7 @@ function AdminUsersView({
       </section>
 
       <section className="mt-6 rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-2 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-bold text-slate-950">
               <LayoutDashboard className="h-5 w-5 text-emerald-600" />
@@ -670,11 +676,22 @@ function AdminUsersView({
               Manage registered users in SmartTask.
             </p>
           </div>
-          {usersData?.meta && (
-            <span className="text-sm font-semibold text-slate-500">
-              {usersData.meta.total} users
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <input
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Search by name or email..."
+                className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-600 sm:w-64"
+              />
+            </div>
+            {usersData?.meta && (
+              <span className="shrink-0 text-sm font-semibold text-slate-500">
+                {usersData.meta.total} users
+              </span>
+            )}
+          </div>
         </div>
 
         {isLoading && (
@@ -703,6 +720,7 @@ function AdminUsersView({
                   <th className="px-5 py-3 font-bold">Email</th>
                   <th className="px-5 py-3 font-bold">Role</th>
                   <th className="px-5 py-3 font-bold">Joined</th>
+                  <th className="px-5 py-3 font-bold">Last Login</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -720,6 +738,11 @@ function AdminUsersView({
                     </td>
                     <td className="px-5 py-4 text-slate-600">
                       {new Date(adminUser.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-5 py-4 text-slate-600">
+                      {adminUser.lastLogin
+                        ? new Date(adminUser.lastLogin).toLocaleDateString()
+                        : <span className="text-slate-400">Never</span>}
                     </td>
                   </tr>
                 ))}
