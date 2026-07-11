@@ -3,4 +3,5 @@ import { query } from "express-validator";
 export const paginationRules = [
   query("page").optional().isInt({ min: 1 }).toInt(),
   query("limit").optional().isInt({ min: 1, max: 50 }).toInt(),
+  query("search").optional().isString().trim().escape(),
 ];

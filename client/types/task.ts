@@ -57,6 +57,7 @@ export type AdminUser = {
   email: string;
   role: "user" | "superadmin";
   createdAt: string;
+  lastLogin: string | null;
 };
 
 export type TaskFilters = {

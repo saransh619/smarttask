@@ -46,10 +46,19 @@ export async function getAdminStats(_req: Request, res: Response) {
 
 export async function listUsers(req: Request, res: Response) {
   const { page, limit, skip } = getPagination(req);
-  const userFilter = { role: UserRole.USER };
+  const search = (req.query.search as string)?.trim();
+
+  const userFilter: Record<string, unknown> = { role: UserRole.USER };
+  if (search) {
+    userFilter.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } },
+    ];
+  }
+
   const [users, total] = await Promise.all([
     User.find(userFilter)
-      .select("name email role createdAt")
+      .select("name email role createdAt lastLogin")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)

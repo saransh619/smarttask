@@ -16,6 +16,7 @@ const userSchema = new Schema(
     },
     password: { type: String, required: true, minlength: 8, select: false },
     role: { type: String, enum: userRoles, default: UserRole.USER, index: true },
+    lastLogin: { type: Date, default: null },
   },
   { timestamps: true },
 );

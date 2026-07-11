@@ -108,8 +108,8 @@ export const api = {
 
   getAdminStats: () => request<AdminStats>("/admin/stats"),
 
-  listUsers: (page = 1, limit = 10) =>
+  listUsers: (page = 1, limit = 10, search = "") =>
     request<{ users: AdminUser[]; meta: PaginationMeta }>(
-      `/admin/users?page=${page}&limit=${limit}`,
+      `/admin/users?page=${page}&limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ""}`,
     ),
 };
