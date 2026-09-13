@@ -15,7 +15,7 @@ SmartTask is a full-stack, production-style task management system built with Ne
 
 - JWT authentication with httpOnly cookies
 - Register, login, logout, and session restore
-- User and superadmin roles
+- Three-tier roles: user, admin, and a single fixed superadmin
 - API rate limiting for general traffic and stricter auth protection
 - Startup superadmin seeding from environment variables
 - Full task CRUD over REST APIs
@@ -28,7 +28,8 @@ SmartTask is a full-stack, production-style task management system built with Ne
 - Drag tasks between Todo, In Progress, and Done columns to update status
 - Pagination for task lists and admin user lists
 - Search and sort registered users by name, email, join date, or last login
-- Promote/demote user roles and delete user accounts from the admin dashboard
+- Admins and the superadmin can view the admin dashboard; only the superadmin can promote/demote users between user and admin, or delete accounts
+- The superadmin role can never be assigned through the API and the superadmin account can never be modified or deleted
 - Superadmin statistics using MongoDB aggregation
 - Responsive Next.js dashboard with loading states, validation, and toast notifications
 
@@ -209,14 +210,14 @@ algorithm=merge|quick
 
 ### Admin
 
-Admin routes require a logged-in user with role `superadmin`.
+Admin routes require a logged-in user with role `admin` or `superadmin`. `PATCH` and `DELETE` on users additionally require `superadmin`.
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
 | GET | `/admin/stats` | Aggregated app statistics |
-| GET | `/admin/users` | List registered users with search and sorting |
-| PATCH | `/admin/users/:id/role` | Update a user's role (`user` or `superadmin`) |
-| DELETE | `/admin/users/:id` | Delete a user and their tasks |
+| GET | `/admin/users` | List users and admins (excludes the superadmin), with search and sorting |
+| PATCH | `/admin/users/:id/role` | Superadmin-only. Update a user's role (`user` or `admin`) |
+| DELETE | `/admin/users/:id` | Superadmin-only. Delete a user and their tasks |
 
 Supported admin user query params:
 
@@ -228,7 +229,7 @@ page=1
 limit=10
 ```
 
-A superadmin cannot change their own role or delete their own account.
+A superadmin cannot change their own role or delete their own account. The role can never be set to `superadmin` through the API, and the superadmin account can never be targeted by a role change or delete request — there is always exactly one superadmin, seeded at startup.
 
 ## Security Notes
 

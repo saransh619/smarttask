@@ -491,15 +491,22 @@ export const swaggerSpec = {
     "/api/admin/users": {
       get: {
         tags: ["Admin"],
-        summary: "List standard users",
+        summary: "List users and admins",
         security: [{ cookieAuth: [] }],
         parameters: [
           { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
           { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 50, default: 10 } },
+          { name: "search", in: "query", schema: { type: "string" } },
+          {
+            name: "sortBy",
+            in: "query",
+            schema: { type: "string", enum: ["name", "email", "createdAt", "lastLogin"] },
+          },
+          { name: "sortOrder", in: "query", schema: { type: "string", enum: ["asc", "desc"] } },
         ],
         responses: {
           "200": {
-            description: "Paginated standard users.",
+            description: "Paginated users, excluding the superadmin.",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ApiEnvelope" },
@@ -516,6 +523,8 @@ export const swaggerSpec = {
       patch: {
         tags: ["Admin"],
         summary: "Update a user's role",
+        description:
+          "Superadmin-only. Promotes or demotes a user between user and admin. The role can never be set to superadmin through this endpoint, and the superadmin account can never be targeted.",
         security: [{ cookieAuth: [] }],
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "string" } },
@@ -526,7 +535,7 @@ export const swaggerSpec = {
             "application/json": {
               schema: {
                 type: "object",
-                properties: { role: { type: "string", enum: ["user", "superadmin"] } },
+                properties: { role: { type: "string", enum: ["user", "admin"] } },
                 required: ["role"],
               },
             },
@@ -552,6 +561,7 @@ export const swaggerSpec = {
       delete: {
         tags: ["Admin"],
         summary: "Delete a user and their tasks",
+        description: "Superadmin-only. The superadmin account can never be deleted.",
         security: [{ cookieAuth: [] }],
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "string" } },

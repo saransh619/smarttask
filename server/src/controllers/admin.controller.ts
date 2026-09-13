@@ -6,8 +6,9 @@ import { createPaginationMeta, getPagination } from "../utils/pagination.js";
 import { serverResponse } from "../utils/serverResponse.js";
 
 export async function getAdminStats(_req: Request, res: Response) {
-  const [userCount, superAdminCount, taskStats] = await Promise.all([
+  const [userCount, adminCount, superAdminCount, taskStats] = await Promise.all([
     User.countDocuments({ role: UserRole.USER }),
+    User.countDocuments({ role: UserRole.ADMIN }),
     User.countDocuments({ role: UserRole.SUPER_ADMIN }),
     Task.aggregate([
       {
@@ -29,8 +30,9 @@ export async function getAdminStats(_req: Request, res: Response) {
 
   serverResponse.success(res, ServerSuccess.ADMIN.STATS, {
     users: {
-      total: userCount + superAdminCount,
+      total: userCount + adminCount + superAdminCount,
       standardUsers: userCount,
+      admins: adminCount,
       superAdmins: superAdminCount,
     },
     tasks:
@@ -53,7 +55,7 @@ export async function listUsers(req: Request, res: Response) {
   const sortBy = USER_SORT_FIELDS.has(sortByParam) ? sortByParam : "createdAt";
   const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
 
-  const userFilter: Record<string, unknown> = { role: UserRole.USER };
+  const userFilter: Record<string, unknown> = { role: { $ne: UserRole.SUPER_ADMIN } };
   if (search) {
     userFilter.$or = [
       { name: { $regex: search, $options: "i" } },
@@ -86,16 +88,22 @@ export async function updateUserRole(req: Request, res: Response) {
     return;
   }
 
+  const target = await User.findById(id).select("role");
+  if (!target) {
+    serverResponse.notFound(res, ServerErrors.USER.NOT_FOUND);
+    return;
+  }
+
+  if (target.role === UserRole.SUPER_ADMIN) {
+    serverResponse.badRequest(res, ServerErrors.ADMIN.CANNOT_MODIFY_SUPER_ADMIN);
+    return;
+  }
+
   const user = await User.findByIdAndUpdate(
     id,
     { role },
     { new: true },
   ).select("name email role createdAt lastLogin");
-
-  if (!user) {
-    serverResponse.notFound(res, ServerErrors.USER.NOT_FOUND);
-    return;
-  }
 
   serverResponse.success(res, ServerSuccess.ADMIN.USER_ROLE_UPDATED, { user });
 }
@@ -108,12 +116,18 @@ export async function deleteUser(req: Request, res: Response) {
     return;
   }
 
-  const user = await User.findByIdAndDelete(id);
-  if (!user) {
+  const target = await User.findById(id).select("role");
+  if (!target) {
     serverResponse.notFound(res, ServerErrors.USER.NOT_FOUND);
     return;
   }
 
+  if (target.role === UserRole.SUPER_ADMIN) {
+    serverResponse.badRequest(res, ServerErrors.ADMIN.CANNOT_MODIFY_SUPER_ADMIN);
+    return;
+  }
+
+  await User.findByIdAndDelete(id);
   await Task.deleteMany({ owner: id });
 
   serverResponse.success(res, ServerSuccess.ADMIN.USER_DELETED, { id });

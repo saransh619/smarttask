@@ -55,9 +55,10 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
   const isSuperAdmin = user.role === "superadmin";
-  const taskWorkspace = useTaskWorkspace({ isSuperAdmin, notify });
+  const canViewAdminPanel = isSuperAdmin || user.role === "admin";
+  const taskWorkspace = useTaskWorkspace({ isSuperAdmin: canViewAdminPanel, notify });
   const adminDashboard = useAdminDashboard({
-    enabled: isSuperAdmin,
+    enabled: canViewAdminPanel,
     usersViewActive: activeView === "users",
     notify,
   });
@@ -70,7 +71,7 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
             <div>
               <p className="flex items-center gap-2 text-sm font-bold text-emerald-700">
                 <Brain className="h-4 w-4" />
-                SmartTask · {isSuperAdmin ? "Superadmin" : "User"}
+                SmartTask · {isSuperAdmin ? "Superadmin" : user.role === "admin" ? "Admin" : "User"}
               </p>
               <h1 className="mt-1 text-2xl font-bold text-slate-950">Welcome, {user.name}</h1>
             </div>
@@ -94,7 +95,7 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
             </div>
           </div>
 
-          {isSuperAdmin && (
+          {canViewAdminPanel && (
             <nav className="flex flex-wrap gap-2">
               <ViewButton
                 active={activeView === "tasks"}
@@ -113,7 +114,7 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
         </div>
       </header>
 
-      {activeView === "users" && isSuperAdmin ? (
+      {activeView === "users" && canViewAdminPanel ? (
         <AdminUsersView
           stats={adminDashboard.statsQuery.data}
           usersData={adminDashboard.usersQuery.data}
@@ -125,6 +126,7 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
           onToggleSort={adminDashboard.toggleSort}
           onPreviousPage={adminDashboard.previousUsersPage}
           onNextPage={adminDashboard.nextUsersPage}
+          canManageUsers={isSuperAdmin}
           onUpdateRole={adminDashboard.updateUserRole}
           isUpdatingRole={adminDashboard.isUpdatingRole}
           onRequestDelete={setUserToDelete}
@@ -707,6 +709,7 @@ function AdminUsersView({
   onToggleSort,
   onPreviousPage,
   onNextPage,
+  canManageUsers,
   onUpdateRole,
   isUpdatingRole,
   onRequestDelete,
@@ -721,14 +724,16 @@ function AdminUsersView({
   onToggleSort: (field: UserSortField) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
-  onUpdateRole: (id: string, role: "user" | "superadmin") => void;
+  canManageUsers: boolean;
+  onUpdateRole: (id: string, role: "user" | "admin") => void;
   isUpdatingRole: boolean;
   onRequestDelete: (user: AdminUser) => void;
 }) {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-      <section className="grid gap-4 md:max-w-sm">
-        <AdminMetric label="Total users" value={stats?.users.standardUsers ?? 0} />
+      <section className="grid grid-cols-2 gap-4 md:max-w-md">
+        <AdminMetric label="Standard users" value={stats?.users.standardUsers ?? 0} />
+        <AdminMetric label="Admins" value={stats?.users.admins ?? 0} />
       </section>
 
       <section className="mt-6 rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -769,7 +774,7 @@ function AdminUsersView({
 
         {usersData && usersData.users.length === 0 && (
           <div className="p-10 text-center">
-            <h3 className="text-base font-bold text-slate-950">No standard users yet</h3>
+            <h3 className="text-base font-bold text-slate-950">No users found</h3>
             <p className="mt-2 text-sm text-slate-500">
               New registered user accounts will appear in this view.
             </p>
@@ -787,7 +792,7 @@ function AdminUsersView({
                   <th className="px-5 py-3 font-bold">Role</th>
                   <SortableHeader field="createdAt" label="Joined" sortBy={sortBy} sortOrder={sortOrder} onToggleSort={onToggleSort} />
                   <SortableHeader field="lastLogin" label="Last Login" sortBy={sortBy} sortOrder={sortOrder} onToggleSort={onToggleSort} />
-                  <th className="px-5 py-3 font-bold">Actions</th>
+                  {canManageUsers && <th className="px-5 py-3 font-bold">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -799,7 +804,13 @@ function AdminUsersView({
                     <td className="px-5 py-4 font-bold text-slate-950">{adminUser.name}</td>
                     <td className="px-5 py-4 text-slate-600">{adminUser.email}</td>
                     <td className="px-5 py-4">
-                      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase text-emerald-700">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${
+                          adminUser.role === "admin"
+                            ? "bg-indigo-100 text-indigo-700"
+                            : "bg-emerald-100 text-emerald-700"
+                        }`}
+                      >
                         {adminUser.role}
                       </span>
                     </td>
@@ -811,30 +822,32 @@ function AdminUsersView({
                         ? new Date(adminUser.lastLogin).toLocaleDateString()
                         : <span className="text-slate-400">Never</span>}
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          disabled={isUpdatingRole}
-                          onClick={() =>
-                            onUpdateRole(
-                              adminUser._id,
-                              adminUser.role === "superadmin" ? "user" : "superadmin",
-                            )
-                          }
-                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {adminUser.role === "superadmin" ? "Demote" : "Promote"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onRequestDelete(adminUser)}
-                          className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+                    {canManageUsers && (
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={isUpdatingRole}
+                            onClick={() =>
+                              onUpdateRole(
+                                adminUser._id,
+                                adminUser.role === "admin" ? "user" : "admin",
+                              )
+                            }
+                            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {adminUser.role === "admin" ? "Demote" : "Promote"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onRequestDelete(adminUser)}
+                            className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

@@ -41,12 +41,12 @@ export function useAdminDashboard({ enabled, usersViewActive, notify }: Args) {
   }
 
   const updateRoleMutation = useMutation({
-    mutationFn: ({ id, role }: { id: string; role: "user" | "superadmin" }) =>
+    mutationFn: ({ id, role }: { id: string; role: "user" | "admin" }) =>
       api.updateUserRole(id, role),
     onSuccess: (_data, { role }) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
-      notify("success", role === "superadmin" ? "User promoted to superadmin" : "User demoted to standard user");
+      notify("success", role === "admin" ? "User promoted to admin" : "User demoted to standard user");
     },
     onError: (error: Error) => notify("error", error.message),
   });
@@ -74,7 +74,7 @@ export function useAdminDashboard({ enabled, usersViewActive, notify }: Args) {
     toggleSort,
     previousUsersPage: () => setUsersPage((page) => Math.max(page - 1, 1)),
     nextUsersPage: () => setUsersPage((page) => page + 1),
-    updateUserRole: (id: string, role: "user" | "superadmin") =>
+    updateUserRole: (id: string, role: "user" | "admin") =>
       updateRoleMutation.mutate({ id, role }),
     isUpdatingRole: updateRoleMutation.isPending,
     deleteUser: (id: string) => deleteUserMutation.mutate(id),

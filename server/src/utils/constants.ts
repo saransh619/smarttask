@@ -47,8 +47,11 @@ export const CookieNames = {
 
 export const UserRole = {
   USER: "user",
+  ADMIN: "admin",
   SUPER_ADMIN: "superadmin",
 } as const;
+
+export const AssignableUserRoles = [UserRole.USER, UserRole.ADMIN] as const;
 
 export const ApiMeta = {
   SERVICE_NAME: "smarttask-api",
@@ -88,6 +91,7 @@ export const ServerErrors = {
     SUPER_ADMIN_CREATED: "Superadmin seeded successfully",
     SUPER_ADMIN_SKIPPED: "Superadmin seed skipped because credentials are not configured",
     CANNOT_MODIFY_SELF: "You cannot change your own role or delete your own account",
+    CANNOT_MODIFY_SUPER_ADMIN: "The superadmin account cannot be modified or deleted",
   },
   EMAIL: {
     REQUIRED: "A valid email is required",
