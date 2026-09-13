@@ -108,8 +108,27 @@ export const api = {
 
   getAdminStats: () => request<AdminStats>("/admin/stats"),
 
-  listUsers: (page = 1, limit = 10, search = "") =>
+  listUsers: (
+    page = 1,
+    limit = 10,
+    search = "",
+    sortBy: "name" | "email" | "createdAt" | "lastLogin" = "createdAt",
+    sortOrder: "asc" | "desc" = "desc",
+  ) =>
     request<{ users: AdminUser[]; meta: PaginationMeta }>(
-      `/admin/users?page=${page}&limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ""}`,
+      `/admin/users?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}${
+        search ? `&search=${encodeURIComponent(search)}` : ""
+      }`,
     ),
+
+  updateUserRole: (id: string, role: "user" | "superadmin") =>
+    request<{ user: AdminUser }>(`/admin/users/${id}/role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
+
+  deleteUser: (id: string) =>
+    request<{ id: string }>(`/admin/users/${id}`, {
+      method: "DELETE",
+    }),
 };

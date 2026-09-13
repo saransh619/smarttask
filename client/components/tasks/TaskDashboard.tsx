@@ -1,6 +1,9 @@
 "use client";
 
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   Brain,
   AlertTriangle,
   CalendarPlus,
@@ -50,11 +53,13 @@ const taskColumns: Array<{ title: TaskStatus; label: string }> = [
 export function TaskDashboard({ user, onLogout, notify }: Props) {
   const [activeView, setActiveView] = useState<DashboardView>("tasks");
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
   const isSuperAdmin = user.role === "superadmin";
   const taskWorkspace = useTaskWorkspace({ isSuperAdmin, notify });
   const adminDashboard = useAdminDashboard({
     enabled: isSuperAdmin,
     usersViewActive: activeView === "users",
+    notify,
   });
 
   return (
@@ -115,8 +120,14 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
           isLoading={adminDashboard.usersQuery.isLoading}
           search={adminDashboard.search}
           onSearchChange={adminDashboard.setSearch}
+          sortBy={adminDashboard.sortBy}
+          sortOrder={adminDashboard.sortOrder}
+          onToggleSort={adminDashboard.toggleSort}
           onPreviousPage={adminDashboard.previousUsersPage}
           onNextPage={adminDashboard.nextUsersPage}
+          onUpdateRole={adminDashboard.updateUserRole}
+          isUpdatingRole={adminDashboard.isUpdatingRole}
+          onRequestDelete={setUserToDelete}
         />
       ) : (
         <TasksView
@@ -186,6 +197,46 @@ export function TaskDashboard({ user, onLogout, notify }: Props) {
                 className="rounded-lg bg-rose-600 px-4 py-2 font-semibold text-white hover:bg-rose-700"
               >
                 Delete task
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        title="Delete user"
+        isOpen={Boolean(userToDelete)}
+        onClose={() => setUserToDelete(null)}
+      >
+        {userToDelete && (
+          <div className="space-y-5">
+            <div className="flex gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-rose-700">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+              <div>
+                <h3 className="font-bold">Delete this user?</h3>
+                <p className="mt-1 text-sm">
+                  This will permanently delete "{userToDelete.name}" ({userToDelete.email}) and
+                  all of their tasks from SmartTask.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setUserToDelete(null)}
+                className="rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  adminDashboard.deleteUser(userToDelete._id);
+                  setUserToDelete(null);
+                }}
+                className="rounded-lg bg-rose-600 px-4 py-2 font-semibold text-white hover:bg-rose-700"
+              >
+                Delete user
               </button>
             </div>
           </div>
@@ -642,22 +693,37 @@ function getColumnTasks(tasks: Task[], status: TaskStatus) {
     });
 }
 
+type UserSortField = "name" | "email" | "createdAt" | "lastLogin";
+type SortOrder = "asc" | "desc";
+
 function AdminUsersView({
   stats,
   usersData,
   isLoading,
   search,
   onSearchChange,
+  sortBy,
+  sortOrder,
+  onToggleSort,
   onPreviousPage,
   onNextPage,
+  onUpdateRole,
+  isUpdatingRole,
+  onRequestDelete,
 }: {
   stats?: AdminStats;
   usersData?: { users: AdminUser[]; meta: PaginationMeta };
   isLoading: boolean;
   search: string;
   onSearchChange: (value: string) => void;
+  sortBy: UserSortField;
+  sortOrder: SortOrder;
+  onToggleSort: (field: UserSortField) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
+  onUpdateRole: (id: string, role: "user" | "superadmin") => void;
+  isUpdatingRole: boolean;
+  onRequestDelete: (user: AdminUser) => void;
 }) {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
@@ -716,11 +782,12 @@ function AdminUsersView({
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
                   <th className="w-24 px-5 py-3 font-bold">S.N.</th>
-                  <th className="px-5 py-3 font-bold">Name</th>
-                  <th className="px-5 py-3 font-bold">Email</th>
+                  <SortableHeader field="name" label="Name" sortBy={sortBy} sortOrder={sortOrder} onToggleSort={onToggleSort} />
+                  <SortableHeader field="email" label="Email" sortBy={sortBy} sortOrder={sortOrder} onToggleSort={onToggleSort} />
                   <th className="px-5 py-3 font-bold">Role</th>
-                  <th className="px-5 py-3 font-bold">Joined</th>
-                  <th className="px-5 py-3 font-bold">Last Login</th>
+                  <SortableHeader field="createdAt" label="Joined" sortBy={sortBy} sortOrder={sortOrder} onToggleSort={onToggleSort} />
+                  <SortableHeader field="lastLogin" label="Last Login" sortBy={sortBy} sortOrder={sortOrder} onToggleSort={onToggleSort} />
+                  <th className="px-5 py-3 font-bold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -743,6 +810,30 @@ function AdminUsersView({
                       {adminUser.lastLogin
                         ? new Date(adminUser.lastLogin).toLocaleDateString()
                         : <span className="text-slate-400">Never</span>}
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={isUpdatingRole}
+                          onClick={() =>
+                            onUpdateRole(
+                              adminUser._id,
+                              adminUser.role === "superadmin" ? "user" : "superadmin",
+                            )
+                          }
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {adminUser.role === "superadmin" ? "Demote" : "Promote"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onRequestDelete(adminUser)}
+                          className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -767,6 +858,38 @@ function AdminUsersView({
         )}
       </section>
     </div>
+  );
+}
+
+function SortableHeader({
+  field,
+  label,
+  sortBy,
+  sortOrder,
+  onToggleSort,
+}: {
+  field: UserSortField;
+  label: string;
+  sortBy: UserSortField;
+  sortOrder: SortOrder;
+  onToggleSort: (field: UserSortField) => void;
+}) {
+  const isActive = sortBy === field;
+  const Icon = isActive ? (sortOrder === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+
+  return (
+    <th className="px-5 py-3 font-bold">
+      <button
+        type="button"
+        onClick={() => onToggleSort(field)}
+        className={`flex items-center gap-1.5 uppercase ${
+          isActive ? "text-slate-950" : "text-slate-500 hover:text-slate-700"
+        }`}
+      >
+        {label}
+        <Icon className="h-3.5 w-3.5" />
+      </button>
+    </th>
   );
 }
 

@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { Task } from "../models/Task.js";
 import { User } from "../models/User.js";
-import { ServerSuccess, TaskPriority, TaskStatus, UserRole } from "../utils/constants.js";
+import { ServerErrors, ServerSuccess, TaskPriority, TaskStatus, UserRole } from "../utils/constants.js";
 import { createPaginationMeta, getPagination } from "../utils/pagination.js";
 import { serverResponse } from "../utils/serverResponse.js";
 
@@ -44,9 +44,14 @@ export async function getAdminStats(_req: Request, res: Response) {
   });
 }
 
+const USER_SORT_FIELDS = new Set(["name", "email", "createdAt", "lastLogin"]);
+
 export async function listUsers(req: Request, res: Response) {
   const { page, limit, skip } = getPagination(req);
   const search = (req.query.search as string)?.trim();
+  const sortByParam = req.query.sortBy as string;
+  const sortBy = USER_SORT_FIELDS.has(sortByParam) ? sortByParam : "createdAt";
+  const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
 
   const userFilter: Record<string, unknown> = { role: UserRole.USER };
   if (search) {
@@ -59,7 +64,7 @@ export async function listUsers(req: Request, res: Response) {
   const [users, total] = await Promise.all([
     User.find(userFilter)
       .select("name email role createdAt lastLogin")
-      .sort({ createdAt: -1 })
+      .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(limit)
       .lean(),
@@ -70,4 +75,46 @@ export async function listUsers(req: Request, res: Response) {
     users,
     meta: createPaginationMeta(total, page, limit),
   });
+}
+
+export async function updateUserRole(req: Request, res: Response) {
+  const { id } = req.params;
+  const { role } = req.body as { role: string };
+
+  if (id === req.userId) {
+    serverResponse.badRequest(res, ServerErrors.ADMIN.CANNOT_MODIFY_SELF);
+    return;
+  }
+
+  const user = await User.findByIdAndUpdate(
+    id,
+    { role },
+    { new: true },
+  ).select("name email role createdAt lastLogin");
+
+  if (!user) {
+    serverResponse.notFound(res, ServerErrors.USER.NOT_FOUND);
+    return;
+  }
+
+  serverResponse.success(res, ServerSuccess.ADMIN.USER_ROLE_UPDATED, { user });
+}
+
+export async function deleteUser(req: Request, res: Response) {
+  const { id } = req.params;
+
+  if (id === req.userId) {
+    serverResponse.badRequest(res, ServerErrors.ADMIN.CANNOT_MODIFY_SELF);
+    return;
+  }
+
+  const user = await User.findByIdAndDelete(id);
+  if (!user) {
+    serverResponse.notFound(res, ServerErrors.USER.NOT_FOUND);
+    return;
+  }
+
+  await Task.deleteMany({ owner: id });
+
+  serverResponse.success(res, ServerSuccess.ADMIN.USER_DELETED, { id });
 }

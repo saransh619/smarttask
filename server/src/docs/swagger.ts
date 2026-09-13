@@ -512,6 +512,66 @@ export const swaggerSpec = {
         },
       },
     },
+    "/api/admin/users/{id}/role": {
+      patch: {
+        tags: ["Admin"],
+        summary: "Update a user's role",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { role: { type: "string", enum: ["user", "superadmin"] } },
+                required: ["role"],
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Updated user.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiEnvelope" },
+              },
+            },
+          },
+          "400": { $ref: "#/components/responses/ValidationError" },
+          "401": { $ref: "#/components/responses/Unauthorized" },
+          "403": { $ref: "#/components/responses/Forbidden" },
+          "404": { $ref: "#/components/responses/NotFound" },
+        },
+      },
+    },
+    "/api/admin/users/{id}": {
+      delete: {
+        tags: ["Admin"],
+        summary: "Delete a user and their tasks",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": {
+            description: "Deleted user id.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiEnvelope" },
+              },
+            },
+          },
+          "400": { $ref: "#/components/responses/ValidationError" },
+          "401": { $ref: "#/components/responses/Unauthorized" },
+          "403": { $ref: "#/components/responses/Forbidden" },
+          "404": { $ref: "#/components/responses/NotFound" },
+        },
+      },
+    },
   },
 };
 
