@@ -87,6 +87,7 @@ export const ServerErrors = {
     SUPER_ADMIN_EXISTS: "Superadmin already exists",
     SUPER_ADMIN_CREATED: "Superadmin seeded successfully",
     SUPER_ADMIN_SKIPPED: "Superadmin seed skipped because credentials are not configured",
+    CANNOT_MODIFY_SELF: "You cannot change your own role or delete your own account",
   },
   EMAIL: {
     REQUIRED: "A valid email is required",
@@ -112,6 +113,8 @@ export const ServerSuccess = {
   ADMIN: {
     STATS: "Admin statistics fetched successfully",
     USERS_LISTED: "Users fetched successfully",
+    USER_ROLE_UPDATED: "User role updated successfully",
+    USER_DELETED: "User deleted successfully",
   },
   TASK: {
     CREATED: "Task created successfully",

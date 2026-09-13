@@ -27,6 +27,8 @@ SmartTask is a full-stack, production-style task management system built with Ne
 - List view for searchable task management and Kanban-style board view for drag-and-drop workflow
 - Drag tasks between Todo, In Progress, and Done columns to update status
 - Pagination for task lists and admin user lists
+- Search and sort registered users by name, email, join date, or last login
+- Promote/demote user roles and delete user accounts from the admin dashboard
 - Superadmin statistics using MongoDB aggregation
 - Responsive Next.js dashboard with loading states, validation, and toast notifications
 
@@ -212,14 +214,21 @@ Admin routes require a logged-in user with role `superadmin`.
 | Method | Endpoint | Description |
 | --- | --- | --- |
 | GET | `/admin/stats` | Aggregated app statistics |
-| GET | `/admin/users` | List registered users |
+| GET | `/admin/users` | List registered users with search and sorting |
+| PATCH | `/admin/users/:id/role` | Update a user's role (`user` or `superadmin`) |
+| DELETE | `/admin/users/:id` | Delete a user and their tasks |
 
 Supported admin user query params:
 
 ```bash
+search=jane
+sortBy=name|email|createdAt|lastLogin
+sortOrder=asc|desc
 page=1
 limit=10
 ```
+
+A superadmin cannot change their own role or delete their own account.
 
 ## Security Notes
 
