@@ -33,13 +33,14 @@ export type User = {
   id: string;
   name: string;
   email: string;
-  role: "user" | "superadmin";
+  role: "user" | "admin" | "superadmin";
 };
 
 export type AdminStats = {
   users: {
     total: number;
     standardUsers: number;
+    admins: number;
     superAdmins: number;
   };
   tasks: {
@@ -55,7 +56,7 @@ export type AdminUser = {
   _id: string;
   name: string;
   email: string;
-  role: "user" | "superadmin";
+  role: "user" | "admin";
   createdAt: string;
   lastLogin: string | null;
 };

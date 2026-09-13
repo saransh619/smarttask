@@ -121,7 +121,7 @@ export const api = {
       }`,
     ),
 
-  updateUserRole: (id: string, role: "user" | "superadmin") =>
+  updateUserRole: (id: string, role: "user" | "admin") =>
     request<{ user: AdminUser }>(`/admin/users/${id}/role`, {
       method: "PATCH",
       body: JSON.stringify({ role }),

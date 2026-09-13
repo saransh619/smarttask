@@ -15,16 +15,23 @@ import { paginationRules } from "../validators/pagination.validators.js";
 const router = Router();
 
 router.use(requireAuth);
-router.use(requireRole(UserRole.SUPER_ADMIN));
+router.use(requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN));
 
 router.get("/stats", asyncHandler(getAdminStats));
 router.get("/users", paginationRules, handleValidation, asyncHandler(listUsers));
 router.patch(
   "/users/:id/role",
+  requireRole(UserRole.SUPER_ADMIN),
   updateUserRoleRules,
   handleValidation,
   asyncHandler(updateUserRole),
 );
-router.delete("/users/:id", userIdRule, handleValidation, asyncHandler(deleteUser));
+router.delete(
+  "/users/:id",
+  requireRole(UserRole.SUPER_ADMIN),
+  userIdRule,
+  handleValidation,
+  asyncHandler(deleteUser),
+);
 
 export default router;
